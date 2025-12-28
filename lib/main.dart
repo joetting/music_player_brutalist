@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'design/theme/app_theme.dart';
 import 'design/widgets/neu_adaptive_scaffold.dart';
 import 'design/widgets/neu_playlist_tabs.dart';
@@ -17,6 +18,7 @@ import 'design/widgets/neu_container.dart';
 import 'design/widgets/neu_scrobble_dialogs.dart';
 import 'design/widgets/neu_playlist.dart';
 import 'design/widgets/ascii_icons.dart';
+import 'design/widgets/neu_lyrics_panel.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -90,6 +92,11 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
   final TextEditingController _searchController = TextEditingController();
   FolderNode? _selectedFolder;
   int? _selectedGridRow;
+  
+  // Lyrics State
+  int _rightPanelTab = 0; // 0 = Queue, 1 = Lyrics
+  List<LyricLine> _currentLyrics = [];
+  bool _lyricsAutoScroll = true;
 
   // Mock Data
   late List<FolderNode> _folderTree;
@@ -100,6 +107,7 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
     super.initState();
     _initializeMockData();
     _initializePlaylists();
+    _loadMockLyrics();
     _startPlaybackSimulation();
   }
 
@@ -155,6 +163,82 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
       const PlaylistTab(id: 'favorites', name: 'Favorites', trackCount: 145),
     ];
     _folders = [const PlaylistFolder(id: 'electronic', name: 'Electronic Music')];
+  }
+
+  void _loadMockLyrics() {
+    // Mock synchronized lyrics for "Music Is Math" by Boards of Canada
+    _currentLyrics = [
+      const LyricLine(
+        timestamp: Duration(seconds: 0),
+        text: 'The sunlight on the garden',
+        isSynced: true,
+      ),
+      const LyricLine(
+        timestamp: Duration(seconds: 15),
+        text: 'Hardens and grows cold',
+        isSynced: true,
+      ),
+      const LyricLine(
+        timestamp: Duration(seconds: 30),
+        text: 'We cannot cage the minute',
+        isSynced: true,
+      ),
+      const LyricLine(
+        timestamp: Duration(seconds: 45),
+        text: 'Within its nets of gold',
+        isSynced: true,
+      ),
+      const LyricLine(
+        timestamp: Duration(seconds: 60),
+        text: 'When all is told',
+        isSynced: true,
+      ),
+      const LyricLine(
+        timestamp: Duration(seconds: 75),
+        text: 'We cannot beg for pardon',
+        isSynced: true,
+      ),
+      const LyricLine(
+        timestamp: Duration(seconds: 90),
+        text: 'The beauty that we travel',
+        isSynced: true,
+      ),
+      const LyricLine(
+        timestamp: Duration(seconds: 105),
+        text: 'For is its own excuse for being',
+        isSynced: true,
+      ),
+      const LyricLine(
+        timestamp: Duration(seconds: 120),
+        text: 'Mathematics, geometry',
+        isSynced: true,
+      ),
+      const LyricLine(
+        timestamp: Duration(seconds: 135),
+        text: 'The architecture in the trees',
+        isSynced: true,
+      ),
+      const LyricLine(
+        timestamp: Duration(seconds: 150),
+        text: 'Music is math',
+        isSynced: true,
+      ),
+      const LyricLine(
+        timestamp: Duration(seconds: 165),
+        text: 'The one thing that keeps us in line',
+        isSynced: true,
+      ),
+      const LyricLine(
+        timestamp: Duration(seconds: 180),
+        text: 'Patterns repeat',
+        isSynced: true,
+      ),
+      const LyricLine(
+        timestamp: Duration(seconds: 195),
+        text: 'Time signatures divine',
+        isSynced: true,
+      ),
+    ];
   }
 
   void _startPlaybackSimulation() {
@@ -342,22 +426,121 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
       margin: const EdgeInsets.all(8),
       child: Column(
         children: [
+          // Tab selector
+          _buildRightPanelTabs(),
+          const SizedBox(height: 8),
+          
           if (_currentTrackIndex != null)
-            NeuAudioInfoBadge(format: 'FLAC', sampleRate: 96000, bitDepth: 24, exclusiveMode: true, palette: widget.palette),
-          const SizedBox(height: 12),
-          NeuSpectrogram(palette: widget.palette, height: 160, showGrid: true, showLabels: false),
-          const SizedBox(height: 12),
-          Expanded(
-            child: NeuQueueView(
-              queue: _tracks.asMap().entries.map((e) => QueueTrack(id: e.key.toString(), title: e.value['title'], artist: e.value['artist'], duration: e.value['duration'])).toList(),
-              currentTrackIndex: _currentTrackIndex,
-              onTrackTap: _playTrack,
-              onReorder: (o, n) {},
+            NeuAudioInfoBadge(
+              format: 'FLAC',
+              sampleRate: 96000,
+              bitDepth: 24,
+              exclusiveMode: true,
               palette: widget.palette,
             ),
+          const SizedBox(height: 12),
+          
+          // Tab content
+          Expanded(
+            child: _rightPanelTab == 0 ? _buildQueueTab() : _buildLyricsTab(),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRightPanelTabs() {
+    return Container(
+      decoration: BoxDecoration(
+        color: widget.palette.surface,
+        border: Border.all(color: widget.palette.border, width: 2),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        children: [
+          _buildTab('QUEUE', 0, AsciiGlyph.queueMusic),
+          _buildTab('LYRICS', 1, AsciiGlyph.music),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTab(String label, int index, AsciiGlyph glyph) {
+    final isSelected = _rightPanelTab == index;
+    
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _rightPanelTab = index),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected 
+                ? widget.palette.primary.withOpacity(0.2) 
+                : Colors.transparent,
+            border: isSelected
+                ? Border(
+                    bottom: BorderSide(color: widget.palette.primary, width: 3),
+                  )
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AsciiIcon(glyph, size: 14, color: widget.palette.text),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: GoogleFonts.robotoCondensed(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                  color: widget.palette.text,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQueueTab() {
+    return Column(
+      children: [
+        NeuSpectrogram(
+          palette: widget.palette,
+          height: 160,
+          showGrid: true,
+          showLabels: false,
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: NeuQueueView(
+            queue: _tracks.asMap().entries.map((e) => 
+              QueueTrack(
+                id: e.key.toString(),
+                title: e.value['title'],
+                artist: e.value['artist'],
+                duration: e.value['duration'],
+              )
+            ).toList(),
+            currentTrackIndex: _currentTrackIndex,
+            onTrackTap: _playTrack,
+            onReorder: (o, n) {},
+            palette: widget.palette,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLyricsTab() {
+    return NeuLyricsPanel(
+      lyrics: _currentLyrics,
+      currentPosition: _position,
+      palette: widget.palette,
+      autoScroll: _lyricsAutoScroll,
+      onAutoScrollToggle: (value) => setState(() => _lyricsAutoScroll = value),
+      source: LyricsSource.lrc,
     );
   }
 
