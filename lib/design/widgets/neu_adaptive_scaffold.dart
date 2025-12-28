@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
+import 'ascii_icons.dart';
 
-/// Adaptive scaffold implementing the "Curated Utility" philosophy[cite: 19].
-/// Android: Bottom navigation + touch-friendly Comfortable Mode[cite: 52, 70].
-/// Linux: Multi-pane "Dashboard" layout with resizable panels[cite: 60, 61].
+/// Adaptive scaffold with ASCII navigation icons
 class NeuAdaptiveScaffold extends StatelessWidget {
   final Widget body;
   final Widget? sidebar;
   final Widget? rightPanel;
-  final Widget? bottomPane; // Added to support Linux playback controls 
+  final Widget? bottomPane;
   final String title;
   final List<NeuNavItem>? navItems;
   final int? selectedNavIndex;
@@ -39,19 +39,17 @@ class NeuAdaptiveScaffold extends StatelessWidget {
     return isDesktop ? _buildDesktopLayout(context) : _buildMobileLayout(context);
   }
 
-  /// Implements the Linux "Dashboard" Layout.
-  /// Mimics foobar2000's panels architecture with resizable panes[cite: 60, 61].
   Widget _buildDesktopLayout(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     
     return Scaffold(
       backgroundColor: palette.background,
-      body: Column( // Main Column for Top/Dashboard/Bottom split 
+      body: Column(
         children: [
           Expanded(
             child: Row(
               children: [
-                // Navigation Sidebar (Left Pane) [cite: 61]
+                // Navigation Sidebar
                 if (navItems != null && navItems!.isNotEmpty)
                   _buildDesktopSidebar(textTheme),
 
@@ -59,7 +57,7 @@ class NeuAdaptiveScaffold extends StatelessWidget {
                 Expanded(
                   child: Row(
                     children: [
-                      // Library Tree Panel (Left/Center Pane) [cite: 61]
+                      // Library Tree Panel
                       if (sidebar != null)
                         NeuResizablePanel(
                           initialWidth: 250,
@@ -69,10 +67,10 @@ class NeuAdaptiveScaffold extends StatelessWidget {
                           child: sidebar!,
                         ),
 
-                      // Main Track List (Center Pane - Flex: 1) 
+                      // Main Track List
                       Expanded(child: body),
 
-                      // Diagnostics/Queue Panel (Right Pane) 
+                      // Diagnostics/Queue Panel
                       if (rightPanel != null)
                         NeuResizablePanel(
                           initialWidth: 300,
@@ -90,13 +88,13 @@ class NeuAdaptiveScaffold extends StatelessWidget {
             ),
           ),
 
-          // Playback Control Panel (Bottom Pane) 
+          // Playback Control Panel
           if (bottomPane != null)
             NeuResizablePanel(
               initialHeight: 120,
               minHeight: 80,
               maxHeight: 250,
-              isVertical: true, // Vertical resize for bottom controls [cite: 21]
+              isVertical: true,
               palette: palette,
               child: bottomPane!,
             ),
@@ -165,12 +163,16 @@ class NeuAdaptiveScaffold extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            Icon(
-                              item.icon,
-                              size: 18,
-                              color: isSelected
-                                  ? palette.primary
-                                  : palette.text.withOpacity(0.7),
+                            // ASCII glyph instead of Icon
+                            Text(
+                              item.glyph,
+                              style: GoogleFonts.spaceMono(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w900,
+                                color: isSelected
+                                    ? palette.primary
+                                    : palette.text.withOpacity(0.7),
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Text(
@@ -190,36 +192,34 @@ class NeuAdaptiveScaffold extends StatelessWidget {
                 );
               },
             ),
-            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildMobileLayout(BuildContext context) {
-  return Scaffold(
-    backgroundColor: palette.background,
-    appBar: AppBar(
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
-      backgroundColor: palette.surface,
-      elevation: 0,
-      shape: Border(bottom: BorderSide(color: palette.border, width: 3)),
-    ),
-    // Android uses a Navigation Stack for folders 
-    body: Column(
-      children: [
-        Expanded(child: body),
-        // Persistent Footer: Mini Player sits above navigation 
-        if (floatingActionButton != null) 
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: floatingActionButton!,
-          ),
-      ],
-    ),
-    bottomNavigationBar: _buildMobileBottomNav(Theme.of(context).textTheme),
-  );
-}
+    return Scaffold(
+      backgroundColor: palette.background,
+      appBar: AppBar(
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+        backgroundColor: palette.surface,
+        elevation: 0,
+        shape: Border(bottom: BorderSide(color: palette.border, width: 3)),
+      ),
+      body: Column(
+        children: [
+          Expanded(child: body),
+          if (floatingActionButton != null) 
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: floatingActionButton!,
+            ),
+        ],
+      ),
+      bottomNavigationBar: _buildMobileBottomNav(Theme.of(context).textTheme),
+    );
+  }
 
   Widget _buildMobileBottomNav(TextTheme textTheme) {
     return Container(
@@ -258,12 +258,15 @@ class NeuAdaptiveScaffold extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        item.icon,
-                        size: 24,
-                        color: isSelected
-                            ? palette.primary
-                            : palette.text.withOpacity(0.6),
+                      Text(
+                        item.glyph,
+                        style: GoogleFonts.spaceMono(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: isSelected
+                              ? palette.primary
+                              : palette.text.withOpacity(0.6),
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -290,14 +293,14 @@ class NeuAdaptiveScaffold extends StatelessWidget {
   }
 }
 
-/// Navigation item model
+/// Navigation item model with ASCII glyph
 class NeuNavItem {
-  final IconData icon;
+  final String glyph; // ASCII glyph instead of IconData
   final String label;
   final String route;
 
   const NeuNavItem({
-    required this.icon,
+    required this.glyph,
     required this.label,
     required this.route,
   });
@@ -307,22 +310,22 @@ class NeuNavItem {
 class MusicNavItems {
   static List<NeuNavItem> get standard => [
         const NeuNavItem(
-          icon: Icons.library_music,
+          glyph: '[♪]',
           label: 'Library',
           route: '/library',
         ),
         const NeuNavItem(
-          icon: Icons.playlist_play,
+          glyph: '≡',
           label: 'Playlists',
           route: '/playlists',
         ),
         const NeuNavItem(
-          icon: Icons.album,
+          glyph: '◉',
           label: 'Albums',
           route: '/albums',
         ),
         const NeuNavItem(
-          icon: Icons.queue_music,
+          glyph: '≣',
           label: 'Queue',
           route: '/queue',
         ),
@@ -330,24 +333,24 @@ class MusicNavItems {
 
   static List<NeuNavItem> get compact => [
         const NeuNavItem(
-          icon: Icons.folder,
+          glyph: '[/]',
           label: 'Files',
           route: '/files',
         ),
         const NeuNavItem(
-          icon: Icons.playlist_play,
+          glyph: '≡',
           label: 'Playlists',
           route: '/playlists',
         ),
         const NeuNavItem(
-          icon: Icons.queue_music,
+          glyph: '≣',
           label: 'Queue',
           route: '/queue',
         ),
       ];
 }
 
-/// Resizable panel container (for Linux multi-pane layouts)
+/// Resizable panel container
 class NeuResizablePanel extends StatefulWidget {
   final Widget child;
   final double initialWidth;
@@ -394,7 +397,6 @@ class _NeuResizablePanelState extends State<NeuResizablePanel> {
     if (widget.isVertical) {
       return Column(
         children: [
-          // Vertical Resizing Handle [cite: 21, 38]
           GestureDetector(
             onVerticalDragUpdate: (details) {
               setState(() {
@@ -409,7 +411,6 @@ class _NeuResizablePanelState extends State<NeuResizablePanel> {
       );
     }
 
-    // ... (Keep horizontal logic, but update handle with _buildHandle)
     return Row(
       children: [
         if (widget.isRightPanel && widget.showHandle)

@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 
-/// Neobrutalist Desktop Window Frame.
-/// Features:
-/// - Custom title bar with Neobrutalist square buttons.
-/// - Thick borders (3px+) and hard shadows.
-/// - Integrated system status and title metadata.
+/// Neobrutalist Desktop Window Frame with ASCII controls
 class NeuWindowFrame extends StatelessWidget {
   final String title;
   final RatholePalette palette;
@@ -31,7 +28,7 @@ class NeuWindowFrame extends StatelessWidget {
       decoration: BoxDecoration(
         color: palette.surface,
         border: Border(
-          bottom: BorderSide(color: palette.border, width: 3), // Explicit grid visibility
+          bottom: BorderSide(color: palette.border, width: 3),
         ),
       ),
       child: Row(
@@ -39,12 +36,11 @@ class NeuWindowFrame extends StatelessWidget {
           if (leading != null) leading!,
           const SizedBox(width: 12),
           
-          // App Title using Monospace for "Measurement Tool" look
+          // App Title using Monospace
           Expanded(
             child: Text(
               title.toUpperCase(),
-              style: TextStyle(
-                fontFamily: 'JetBrains Mono',
+              style: GoogleFonts.spaceMono(
                 fontSize: 12,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1.5,
@@ -53,16 +49,16 @@ class NeuWindowFrame extends StatelessWidget {
             ),
           ),
 
-          // Window Controls: Thick-bordered square buttons
-          _buildWindowButton(Icons.remove, onMinimize),
-          _buildWindowButton(Icons.crop_square, onMaximize),
-          _buildWindowButton(Icons.close, onClose, isClose: true),
+          // Window Controls: ASCII buttons
+          _buildWindowButton('_', onMinimize), // Minimize
+          _buildWindowButton('□', onMaximize), // Maximize
+          _buildWindowButton('×', onClose, isClose: true), // Close
         ],
       ),
     );
   }
 
-  Widget _buildWindowButton(IconData icon, VoidCallback onTap, {bool isClose = false}) {
+  Widget _buildWindowButton(String glyph, VoidCallback onTap, {bool isClose = false}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -72,12 +68,17 @@ class NeuWindowFrame extends StatelessWidget {
           border: Border(
             left: BorderSide(color: palette.border, width: 2),
           ),
-          // Change color on hover could be added via a Statefull widget logic
         ),
-        child: Icon(
-          icon,
-          size: 16,
-          color: isClose ? palette.error : palette.text,
+        child: Center(
+          child: Text(
+            glyph,
+            style: GoogleFonts.spaceMono(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: isClose ? palette.error : palette.text,
+              height: 1.0,
+            ),
+          ),
         ),
       ),
     );

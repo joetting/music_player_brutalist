@@ -2,13 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 
-/// Neubrutalist Folder Tree View
-/// Features:
-/// - Hierarchical directory navigation
-/// - Expandable/collapsible nodes
-/// - File count badges
-/// - Smart folder detection (album vs folder)
-/// - Path breadcrumbs
+/// Neubrutalist Folder Tree View with ASCII icons
 class NeuFolderTree extends StatefulWidget {
   final List<FolderNode> rootNodes;
   final Function(FolderNode) onFolderSelected;
@@ -48,26 +42,27 @@ class _NeuFolderTreeState extends State<NeuFolderTree> {
       ),
     );
   }
+
   Widget _buildFolderIcon(bool isExpanded, bool hasChildren) {
-  if (!hasChildren) {
+    String glyph;
+    if (!hasChildren) {
+      glyph = ' / '; // Simple folder
+    } else {
+      glyph = isExpanded ? '[-]' : '[+]'; // Expandable folder
+    }
+    
     return Text(
-      '  /  ',
+      glyph,
       style: GoogleFonts.spaceMono(
-        fontWeight: FontWeight.bold,
-        color: widget.palette.text.withOpacity(0.5),
+        fontWeight: FontWeight.w900,
+        fontSize: 12,
+        color: hasChildren 
+            ? widget.palette.primary 
+            : widget.palette.text.withOpacity(0.5),
       ),
     );
   }
-  
-  return Text(
-    isExpanded ? ' [-] ' : ' [+] ',
-    style: TextStyle(
-      color: widget.palette.primary,
-      fontWeight: FontWeight.bold,
-      fontFamily: 'JetBrains Mono', // Or GoogleFonts.spaceMono
-    ),
-  );
-}
+
   Widget _buildNode(FolderNode node, int depth) {
     final isExpanded = _expandedPaths.contains(node.path);
     final isSelected = widget.selectedNode?.path == node.path;
@@ -106,12 +101,12 @@ class _NeuFolderTreeState extends State<NeuFolderTree> {
             ),
             child: Row(
               children: [
-                // Replaced standard Icons with ASCII-style glyphs for Neobrutalist look
+                // ASCII folder icon
                 _buildFolderIcon(isExpanded, hasChildren),
 
                 const SizedBox(width: 8),
 
-                // Folder name using SpaceMono to match Neobrutalist measurement-tool aesthetic
+                // Folder name
                 Expanded(
                   child: Text(
                     node.name,
@@ -153,13 +148,13 @@ class _NeuFolderTreeState extends State<NeuFolderTree> {
           ),
         ),
 
-        // Recursive rendering of child nodes if this folder is expanded
+        // Recursive rendering of child nodes
         if (isExpanded && hasChildren)
           ...node.children.map((child) => _buildNode(child, depth + 1)),
       ],
     );
   }
-  }
+}
 
 /// Model for folder tree nodes
 class FolderNode {
@@ -167,7 +162,7 @@ class FolderNode {
   final String name;
   final List<FolderNode> children;
   final int trackCount;
-  final bool isAlbum; // True if folder contains audio files
+  final bool isAlbum;
 
   const FolderNode({
     required this.path,
@@ -178,7 +173,7 @@ class FolderNode {
   });
 }
 
-/// Path breadcrumbs for navigation
+/// Path breadcrumbs with ASCII icons
 class NeuBreadcrumbs extends StatelessWidget {
   final List<String> pathSegments;
   final Function(int) onSegmentTap;
@@ -202,7 +197,13 @@ class NeuBreadcrumbs extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.home, size: 16, color: palette.text.withOpacity(0.5)),
+          Text(
+            '⌂', // Home icon
+            style: GoogleFonts.spaceMono(
+              fontSize: 14,
+              color: palette.text.withOpacity(0.5),
+            ),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Wrap(
@@ -226,10 +227,12 @@ class NeuBreadcrumbs extends StatelessWidget {
                     ),
                   ),
                   if (i < pathSegments.length - 1)
-                    Icon(
-                      Icons.chevron_right,
-                      size: 14,
-                      color: palette.text.withOpacity(0.4),
+                    Text(
+                      '>',
+                      style: GoogleFonts.spaceMono(
+                        fontSize: 11,
+                        color: palette.text.withOpacity(0.4),
+                      ),
                     ),
                 ],
               ],
@@ -241,7 +244,7 @@ class NeuBreadcrumbs extends StatelessWidget {
   }
 }
 
-/// View mode selector (Folders / Artists / Albums / Genres)
+/// View mode selector with ASCII icons
 class NeuViewModeSelector extends StatelessWidget {
   final ViewMode currentMode;
   final Function(ViewMode) onModeChanged;
@@ -285,10 +288,13 @@ class NeuViewModeSelector extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    mode.icon,
-                    size: 14,
-                    color: palette.text,
+                  Text(
+                    mode.glyph,
+                    style: GoogleFonts.spaceMono(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      color: palette.text,
+                    ),
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -309,15 +315,15 @@ class NeuViewModeSelector extends StatelessWidget {
   }
 }
 
-/// View modes for library navigation
+/// View modes with ASCII glyphs
 enum ViewMode {
-  folders(Icons.folder, 'Folders'),
-  artists(Icons.person, 'Artists'),
-  albums(Icons.album, 'Albums'),
-  genres(Icons.music_note, 'Genres');
+  folders('[/]', 'Folders'),
+  artists('[A]', 'Artists'),
+  albums('◉', 'Albums'),
+  genres('♪', 'Genres');
 
-  final IconData icon;
+  final String glyph;
   final String label;
 
-  const ViewMode(this.icon, this.label);
+  const ViewMode(this.glyph, this.label);
 }

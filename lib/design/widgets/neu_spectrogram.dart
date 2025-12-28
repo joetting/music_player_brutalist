@@ -30,6 +30,7 @@ class _NeuSpectrogramState extends State<NeuSpectrogram>
     with SingleTickerProviderStateMixin {
   late AnimationController _mockController;
   final math.Random _random = math.Random();
+  List<double>? _cachedData;
 
   @override
   void initState() {
@@ -37,41 +38,50 @@ class _NeuSpectrogramState extends State<NeuSpectrogram>
     // Animation for mock data when real FFT stream is absent [cite: 5]
     _mockController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    )..repeat();
+      duration: const Duration(milliseconds: 100),
+    );
+    
+    // Only animate if we don't have real data
+    if (widget.frequencyData == null) {
+      _mockController.addListener(_updateMockData);
+      _mockController.repeat();
+    }
+  }
+
+  void _updateMockData() {
+    if (mounted) {
+      setState(() {
+        _cachedData = List.generate(64, (i) => _random.nextDouble());
+      });
+    }
   }
 
   @override
   void dispose() {
+    _mockController.removeListener(_updateMockData);
     _mockController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _mockController,
-      builder: (context, child) {
-        return Container(
-          height: widget.height,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.black, // Stark background for structural visibility [cite: 1, 3]
-            border: Border.all(color: widget.palette.border, width: 3),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: CustomPaint(
-            painter: _SpectrogramPainter(
-              palette: widget.palette,
-              // Use provided data or generate mock signal for demo [cite: 5]
-              data: widget.frequencyData ??
-                  List.generate(64, (i) => _random.nextDouble()),
-              showGrid: widget.showGrid,
-              showLabels: widget.showLabels,
-            ),
-          ),
-        );
-      },
+    return Container(
+      height: widget.height,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.black, // Stark background for structural visibility [cite: 1, 3]
+        border: Border.all(color: widget.palette.border, width: 3),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: CustomPaint(
+        painter: _SpectrogramPainter(
+          palette: widget.palette,
+          // Use provided data or cached mock data [cite: 5]
+          data: widget.frequencyData ?? _cachedData ?? List.generate(64, (i) => 0.5),
+          showGrid: widget.showGrid,
+          showLabels: widget.showLabels,
+        ),
+      ),
     );
   }
 }
