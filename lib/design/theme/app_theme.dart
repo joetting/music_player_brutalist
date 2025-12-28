@@ -70,20 +70,7 @@ class RatholeTheme {
     accent: Color(0xFF00FF9F), // Mint green for interactive elements
   );
 
-  /// Foobar2000 Dark (For purists)
-  static const foobar = RatholePalette(
-    primary: Color(0xFF569CD6), // VS Code blue
-    secondary: Color(0xFF4EC9B0), // Teal
-    tertiary: Color(0xFF9CA3AF), // Gray
-    background: Color(0xFF1E1E1E), // VS Code dark gray
-    surface: Color(0xFF2D2D2D), // Slightly lighter
-    error: Color(0xFFFF3B30), // Red
-    border: Color(0xFF3E3E3E), // Subtle border
-    shadow: Color(0xFF000000), // Black shadow
-    text: Color(0xFFD4D4D4), // VS Code text gray
-    accent: Color(0xFF4EC9B0), // Teal for links/interactive
-  );
-
+  
   /// Synthwave (Retro Futurism)
   static const synthwave = RatholePalette(
     primary: Color(0xFFFF006E), // Hot pink
@@ -111,7 +98,18 @@ class RatholeTheme {
     text: Color(0xFF00FF00), // Green text
     accent: Color(0xFF00DD00), // Lighter green for interactive
   );
-
+  static const RatholePalette midnight = RatholePalette(
+      primary: const Color(0xFF00FF9F),   // Mint Green for high-visibility highlights
+      secondary: const Color(0xFF00D4FF), // Cyan
+      tertiary: const Color(0xFF9CA3AF),  // Subdued Gray
+      background: const Color(0xFF000000), // Pure Black for OLED 
+      surface: const Color(0xFF121212),    // Very dark grey for cards
+      error: const Color(0xFFFF003C),      // Vibrant Red
+      border: const Color(0xFF262626),     // Lowered border contrast 
+      shadow: Colors.transparent,          // Removed offset shadows for OLED 
+      text: const Color(0xFFE0E0E0),       // Off-white for reduced strain
+      accent: const Color(0xFF00FF9F),
+    );
   // --- THEME DATA BUILDERS ---
 
   static ThemeData buildTheme(RatholePalette palette, {bool isDark = false}) {
@@ -258,9 +256,9 @@ class RatholeTheme {
         'Muted': muted,
         'Dark': dark,
         'Dark Pro': darkPro,
-        'Foobar2000': foobar,
         'Synthwave': synthwave,
         'CRT Green': crtGreen,
+        'Midnight': midnight,
       };
 }
 

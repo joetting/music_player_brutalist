@@ -588,8 +588,8 @@ class _CompleteMusicPlayerState extends State<CompleteMusicPlayer> {
               itemBuilder: (context, index) {
                 return NeuTrackTile(
                   trackNumber: index + 1,
-                  title: _getMockTrack(index)['title'],
-                  artist: _getMockTrack(index)['artist'],
+                  title: _getMockTrack(index)['title']!,
+                  artist: _getMockTrack(index)['artist']!,
                   duration: Duration(minutes: 4, seconds: 20 + index * 10),
                   sampleRate: 96000,
                   bitDepth: 24,
@@ -629,8 +629,8 @@ class _CompleteMusicPlayerState extends State<CompleteMusicPlayer> {
       itemBuilder: (context, index) {
         return NeuTrackTile(
           trackNumber: index + 1,
-          title: _getMockTrack(index)['title'],
-          artist: _getMockTrack(index)['artist'],
+          title: _getMockTrack(index)['title']!,
+          artist: _getMockTrack(index)['artist']!,
           duration: Duration(minutes: 4, seconds: 20 + index * 10),
           sampleRate: 96000,
           bitDepth: 24,

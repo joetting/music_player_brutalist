@@ -48,7 +48,26 @@ class _NeuFolderTreeState extends State<NeuFolderTree> {
       ),
     );
   }
-
+  Widget _buildFolderIcon(bool isExpanded, bool hasChildren) {
+  if (!hasChildren) {
+    return Text(
+      '  /  ',
+      style: GoogleFonts.spaceMono(
+        fontWeight: FontWeight.bold,
+        color: widget.palette.text.withOpacity(0.5),
+      ),
+    );
+  }
+  
+  return Text(
+    isExpanded ? ' [-] ' : ' [+] ',
+    style: TextStyle(
+      color: widget.palette.primary,
+      fontWeight: FontWeight.bold,
+      fontFamily: 'JetBrains Mono', // Or GoogleFonts.spaceMono
+    ),
+  );
+}
   Widget _buildNode(FolderNode node, int depth) {
     final isExpanded = _expandedPaths.contains(node.path);
     final isSelected = widget.selectedNode?.path == node.path;
@@ -87,32 +106,12 @@ class _NeuFolderTreeState extends State<NeuFolderTree> {
             ),
             child: Row(
               children: [
-                // Expand/collapse icon
-                if (hasChildren)
-                  Icon(
-                    isExpanded
-                        ? Icons.keyboard_arrow_down
-                        : Icons.keyboard_arrow_right,
-                    size: 16,
-                    color: widget.palette.text.withOpacity(0.7),
-                  )
-                else
-                  const SizedBox(width: 16),
-
-                const SizedBox(width: 4),
-
-                // Folder icon
-                Icon(
-                  node.isAlbum ? Icons.album : Icons.folder,
-                  size: 16,
-                  color: node.isAlbum
-                      ? widget.palette.primary
-                      : widget.palette.secondary,
-                ),
+                // Replaced standard Icons with ASCII-style glyphs for Neobrutalist look
+                _buildFolderIcon(isExpanded, hasChildren),
 
                 const SizedBox(width: 8),
 
-                // Folder name
+                // Folder name using SpaceMono to match Neobrutalist measurement-tool aesthetic
                 Expanded(
                   child: Text(
                     node.name,
@@ -154,13 +153,13 @@ class _NeuFolderTreeState extends State<NeuFolderTree> {
           ),
         ),
 
-        // Render children if expanded
+        // Recursive rendering of child nodes if this folder is expanded
         if (isExpanded && hasChildren)
           ...node.children.map((child) => _buildNode(child, depth + 1)),
       ],
     );
   }
-}
+  }
 
 /// Model for folder tree nodes
 class FolderNode {

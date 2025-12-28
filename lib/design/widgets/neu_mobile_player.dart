@@ -1,476 +1,272 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
+import 'neu_spectrogram.dart';
+import 'neu_audio_info_badge.dart';
+import 'neu_button.dart';
+import 'neu_progress_bar.dart';
 
-/// Android notification bar controller
-/// This widget shows the current playback state and provides controls
-/// in the Android notification bar
-class AndroidNotificationController extends StatelessWidget {
+/// Full-screen "Now Playing" Modal for Android.
+/// 
+/// Implements "Comfort Mode" with large hit targets (72dp+) and high information density.
+/// Features an integrated Mel-Spectrogram and Audio Diagnostic Badge to solve the "Transparency Deficit".
+class NeuMobileExpandedPlayer extends StatelessWidget {
   final String trackTitle;
   final String artistName;
   final String? albumTitle;
   final bool isPlaying;
+  final bool isShuffled;
+  final bool isRepeating;
+  final double progress;
+  final Duration position;
+  final Duration duration;
+  final double volume;
+  final RatholePalette palette;
+  final VoidCallback onClose;
   final VoidCallback onPlayPause;
   final VoidCallback onNext;
   final VoidCallback onPrevious;
-  final RatholePalette palette;
+  final VoidCallback onShuffle;
+  final VoidCallback onRepeat;
+  final Function(double) onSeek;
+  final Function(double) onVolumeChange;
 
-  const AndroidNotificationController({
+  const NeuMobileExpandedPlayer({
     super.key,
     required this.trackTitle,
     required this.artistName,
     this.albumTitle,
     required this.isPlaying,
+    required this.isShuffled,
+    required this.isRepeating,
+    required this.progress,
+    required this.position,
+    required this.duration,
+    required this.volume,
+    required this.palette,
+    required this.onClose,
     required this.onPlayPause,
     required this.onNext,
     required this.onPrevious,
-    required this.palette,
+    required this.onShuffle,
+    required this.onRepeat,
+    required this.onSeek,
+    required this.onVolumeChange,
   });
 
   @override
   Widget build(BuildContext context) {
-    // This is a visual representation of what the notification would look like
-    // In a real implementation, this would use platform channels to control
-    // the actual Android notification
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        border: Border.all(color: palette.border, width: 3),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: palette.shadow,
-            offset: const Offset(6, 6),
-            blurRadius: 0,
+    return Scaffold(
+      backgroundColor: palette.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.keyboard_arrow_down, color: palette.text, size: 32),
+          onPressed: onClose,
+        ),
+        title: Text(
+          'NOW PLAYING',
+          style: GoogleFonts.robotoCondensed(
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 2.0,
+            color: palette.text.withValues(alpha: 0.6),
+          ),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.more_vert, color: palette.text),
+            onPressed: () {}, // Context menu for technical properties
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Notification header
-          Row(
-            children: [
-              Icon(Icons.music_note, size: 16, color: palette.primary),
-              const SizedBox(width: 8),
-              Text(
-                'NOW PLAYING',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                  color: palette.text.withOpacity(0.6),
-                  letterSpacing: 1.2,
-                ),
-              ),
-              const Spacer(),
-              Icon(Icons.close, size: 16, color: palette.text.withOpacity(0.5)),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          // Track info and controls
-          Row(
-            children: [
-              // Album art placeholder
-              Container(
-                width: 64,
-                height: 64,
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          children: [
+            // 1. Large Diagnostic Hero Area
+            // Combines visual branding with the "Truth to Materials" Mel-Spectrogram.
+            Expanded(
+              flex: 5,
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 24),
                 decoration: BoxDecoration(
-                  color: palette.primary.withOpacity(0.2),
-                  border: Border.all(color: palette.border, width: 2),
-                  borderRadius: BorderRadius.circular(8),
+                  color: palette.surface,
+                  border: Border.all(color: palette.border, width: 4),
+                  boxShadow: [
+                    BoxShadow(
+                      color: palette.shadow,
+                      offset: const Offset(8, 8),
+                      blurRadius: 0,
+                    ),
+                  ],
                 ),
-                child: Icon(
-                  Icons.album,
-                  size: 32,
-                  color: palette.primary,
-                ),
-              ),
-
-              const SizedBox(width: 12),
-
-              // Track details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Stack(
                   children: [
-                    Text(
-                      trackTitle,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: palette.text,
+                    Center(
+                      child: Icon(
+                        Icons.album,
+                        size: 180,
+                        color: palette.primary.withValues(alpha: 0.1),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      artistName,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: palette.text.withOpacity(0.7),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (albumTitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        albumTitle!,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: palette.text.withOpacity(0.5),
+                    // Mel-Spectrogram for signal verification
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: SizedBox(
+                        height: 140,
+                        child: NeuSpectrogram(
+                          palette: palette,
+                          height: 140,
+                          showGrid: true, // Grid is essential for diagnostic utility
+                          showLabels: false,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),
-
-              const SizedBox(width: 12),
-
-              // Controls
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildControlButton(Icons.skip_previous, onPrevious),
-                  const SizedBox(width: 8),
-                  _buildControlButton(
-                    isPlaying ? Icons.pause : Icons.play_arrow,
-                    onPlayPause,
-                    isPrimary: true,
-                  ),
-                  const SizedBox(width: 8),
-                  _buildControlButton(Icons.skip_next, onNext),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildControlButton(IconData icon, VoidCallback onPressed, {bool isPrimary = false}) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        width: isPrimary ? 40 : 36,
-        height: isPrimary ? 40 : 36,
-        decoration: BoxDecoration(
-          color: isPrimary ? palette.primary : palette.surface,
-          border: Border.all(color: palette.border, width: 2),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: isPrimary
-              ? [
-                  BoxShadow(
-                    color: palette.shadow,
-                    offset: const Offset(3, 3),
-                    blurRadius: 0,
-                  ),
-                ]
-              : null,
-        ),
-        child: Icon(
-          icon,
-          size: isPrimary ? 20 : 18,
-          color: palette.text,
-        ),
-      ),
-    );
-  }
-}
-
-/// Linux media session controller
-/// This widget provides system-level media controls integration for Linux
-/// using MPRIS D-Bus interface
-class LinuxMediaSessionController extends StatelessWidget {
-  final String trackTitle;
-  final String artistName;
-  final String? albumTitle;
-  final Duration position;
-  final Duration duration;
-  final bool isPlaying;
-  final double volume;
-  final VoidCallback onPlayPause;
-  final VoidCallback onNext;
-  final VoidCallback onPrevious;
-  final VoidCallback onStop;
-  final Function(Duration) onSeek;
-  final Function(double) onVolumeChange;
-  final RatholePalette palette;
-
-  const LinuxMediaSessionController({
-    super.key,
-    required this.trackTitle,
-    required this.artistName,
-    this.albumTitle,
-    required this.position,
-    required this.duration,
-    required this.isPlaying,
-    required this.volume,
-    required this.onPlayPause,
-    required this.onNext,
-    required this.onPrevious,
-    required this.onStop,
-    required this.onSeek,
-    required this.onVolumeChange,
-    required this.palette,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // This is a visual representation of the MPRIS media controls
-    // In a real implementation, this would use platform channels to register
-    // with the Linux media session via D-Bus
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        border: Border.all(color: palette.border, width: 3),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: palette.shadow,
-            offset: const Offset(6, 6),
-            blurRadius: 0,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header
-          Row(
-            children: [
-              Icon(Icons.computer, size: 18, color: palette.tertiary),
-              const SizedBox(width: 8),
-              Text(
-                'LINUX MEDIA SESSION (MPRIS)',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
-                  color: palette.text.withOpacity(0.6),
-                  letterSpacing: 1.2,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: palette.primary.withOpacity(0.2),
-                  border: Border.all(color: palette.border, width: 1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  isPlaying ? 'PLAYING' : 'PAUSED',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    color: palette.text,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Track metadata
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: palette.background,
-              border: Border.all(color: palette.border, width: 2),
-              borderRadius: BorderRadius.circular(8),
             ),
-            child: Column(
+
+            // 2. Metadata Section
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildMetadataRow('Title', trackTitle),
-                const SizedBox(height: 6),
-                _buildMetadataRow('Artist', artistName),
-                if (albumTitle != null) ...[
-                  const SizedBox(height: 6),
-                  _buildMetadataRow('Album', albumTitle!),
-                ],
-                const SizedBox(height: 6),
-                _buildMetadataRow(
-                  'Position',
-                  '${_formatDuration(position)} / ${_formatDuration(duration)}',
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // Control buttons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildControlButton(Icons.stop, onStop, 'Stop'),
-              const SizedBox(width: 8),
-              _buildControlButton(Icons.skip_previous, onPrevious, 'Previous'),
-              const SizedBox(width: 8),
-              _buildControlButton(
-                isPlaying ? Icons.pause : Icons.play_arrow,
-                onPlayPause,
-                isPlaying ? 'Pause' : 'Play',
-                isPrimary: true,
-              ),
-              const SizedBox(width: 8),
-              _buildControlButton(Icons.skip_next, onNext, 'Next'),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          // Volume control
-          Row(
-            children: [
-              Icon(Icons.volume_up, size: 16, color: palette.text.withOpacity(0.6)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Container(
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: palette.background,
-                    border: Border.all(color: palette.border, width: 2),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: volume,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: palette.secondary,
-                        borderRadius: BorderRadius.circular(2),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            trackTitle.toUpperCase(),
+                            style: GoogleFonts.robotoCondensed(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w900,
+                              height: 1.1,
+                              color: palette.text,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "$artistName ${albumTitle != null ? '— $albumTitle' : ''}",
+                            style: GoogleFonts.spaceMono(
+                              fontSize: 13,
+                              color: palette.text.withValues(alpha: 0.7),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '${(volume * 100).round()}%',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: palette.text.withOpacity(0.7),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 8),
-
-          // Status indicator
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: palette.primary.withOpacity(0.1),
-              border: Border.all(color: palette.border, width: 1),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.check_circle,
-                  size: 12,
-                  color: palette.primary,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Connected to system media controls (Keyboard shortcuts enabled)',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: palette.text.withOpacity(0.7),
-                  ),
+                const SizedBox(height: 20),
+                // Bit-Perfect/High-Res Indicator
+                NeuAudioInfoBadge(
+                  format: "FLAC",
+                  sampleRate: 96000,
+                  bitDepth: 24,
+                  exclusiveMode: true,
+                  palette: palette,
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildMetadataRow(String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 60,
-          child: Text(
-            '$label:',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: palette.text.withOpacity(0.5),
-            ),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: palette.text,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
+            const SizedBox(height: 32),
 
-  Widget _buildControlButton(IconData icon, VoidCallback onPressed, String label,
-      {bool isPrimary = false}) {
-    return Tooltip(
-      message: label,
-      child: GestureDetector(
-        onTap: onPressed,
-        child: Container(
-          width: isPrimary ? 44 : 40,
-          height: isPrimary ? 44 : 40,
-          decoration: BoxDecoration(
-            color: isPrimary ? palette.primary : palette.surface,
-            border: Border.all(color: palette.border, width: 2),
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: isPrimary
-                ? [
-                    BoxShadow(
-                      color: palette.shadow,
-                      offset: const Offset(4, 4),
-                      blurRadius: 0,
+            // 3. Neobrutalist Progress Bar
+            NeuProgressBar(
+              value: progress,
+              onChanged: onSeek,
+              palette: palette,
+              showLabels: true,
+              leftLabel: _formatDuration(position),
+              rightLabel: _formatDuration(duration),
+              height: 12,
+            ),
+
+            const SizedBox(height: 40),
+
+            // 4. Playback Controls (Comfort Mode: Oversized hit targets)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                NeuIconButton(
+                  icon: isShuffled ? Icons.shuffle_on : Icons.shuffle,
+                  onPressed: onShuffle,
+                  palette: palette,
+                  size: 48,
+                  backgroundColor: isShuffled ? palette.accent.withValues(alpha: 0.2) : null,
+                ),
+                Row(
+                  children: [
+                    NeuIconButton(
+                      icon: Icons.skip_previous,
+                      onPressed: onPrevious,
+                      palette: palette,
+                      size: 64,
                     ),
-                  ]
-                : null,
-          ),
-          child: Icon(
-            icon,
-            size: isPrimary ? 24 : 20,
-            color: palette.text,
-          ),
+                    const SizedBox(width: 16),
+                    NeuIconButton(
+                      icon: isPlaying ? Icons.pause : Icons.play_arrow,
+                      onPressed: onPlayPause,
+                      palette: palette,
+                      size: 84, // Primary touch target
+                      backgroundColor: palette.primary,
+                    ),
+                    const SizedBox(width: 16),
+                    NeuIconButton(
+                      icon: Icons.skip_next,
+                      onPressed: onNext,
+                      palette: palette,
+                      size: 64,
+                    ),
+                  ],
+                ),
+                NeuIconButton(
+                  icon: isRepeating ? Icons.repeat_on : Icons.repeat,
+                  onPressed: onRepeat,
+                  palette: palette,
+                  size: 48,
+                  backgroundColor: isRepeating ? palette.accent.withValues(alpha: 0.2) : null,
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 32),
+
+            // 5. Volume Slider
+            Row(
+              children: [
+                Icon(Icons.volume_down, size: 16, color: palette.text.withValues(alpha: 0.5)),
+                Expanded(
+                  child: Slider(
+                    value: volume,
+                    onChanged: onVolumeChange,
+                    activeColor: palette.secondary,
+                    inactiveColor: palette.border.withValues(alpha: 0.1),
+                  ),
+                ),
+                Icon(Icons.volume_up, size: 16, color: palette.text.withValues(alpha: 0.5)),
+              ],
+            ),
+            
+            const Spacer(),
+          ],
         ),
       ),
     );
   }
 
-  String _formatDuration(Duration duration) {
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes;
+    final seconds = d.inSeconds % 60;
+    return "$minutes:${seconds.toString().padLeft(2, '0')}";
   }
 }

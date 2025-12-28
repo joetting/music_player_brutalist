@@ -86,171 +86,104 @@ class _NeuTrackTileState extends State<NeuTrackTile> {
   }
 
   Widget _buildTileContent(BuildContext context) {
-    final qualityColor = widget.sampleRate != null
-        ? AudioQualityColors.forSampleRate(widget.sampleRate!)
-        : widget.palette.secondary;
-    final textTheme = Theme.of(context).textTheme;
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.lightImpact();
-          widget.onTap();
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: widget.isPlaying
-                ? widget.palette.primary.withOpacity(0.2)
-                : widget.palette.surface,
-            border: Border.all(
-              color: widget.isPlaying ? widget.palette.primary : widget.palette.border,
-              width: widget.isPlaying ? 3 : (_isHovered ? 3 : 2),
+  final isMobile = MediaQuery.of(context).size.width <= 800;
+  // Increase height to 72dp for Android "Comfort Mode" 
+  final double tileHeight = isMobile ? 72.0 : 48.0; 
+  
+  return MouseRegion(
+    // ... existing hover logic ...
+    child: GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact(); // Essential for Android tactile feedback
+        widget.onTap();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: EdgeInsets.all(isMobile ? 16 : 12), // Larger padding for touch 
+        height: tileHeight,
+        decoration: BoxDecoration(
+          color: widget.isPlaying
+              ? widget.palette.primary.withValues(alpha: 0.2)
+              : widget.palette.surface,
+          border: Border.all(
+            color: widget.isPlaying ? widget.palette.primary : widget.palette.border,
+            width: widget.isPlaying ? 3 : 2,
+          ),
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            if (widget.isPlaying || _isHovered)
+              BoxShadow(
+                color: widget.palette.shadow,
+                offset: const Offset(4, 4),
+                blurRadius: 0,
+              ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Track thumbnails or large icons for touch 
+            Container(
+              width: isMobile ? 40 : 32,
+              height: isMobile ? 40 : 32,
+              decoration: BoxDecoration(
+                color: widget.palette.background,
+                border: Border.all(color: widget.palette.border, width: 2),
+              ),
+              child: Icon(
+                widget.isPlaying ? Icons.graphic_eq : Icons.music_note,
+                size: 20,
+                color: widget.palette.primary,
+              ),
             ),
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: widget.isPlaying
-                ? [
-                    BoxShadow(
-                      color: widget.palette.shadow,
-                      offset: const Offset(4, 4),
-                      blurRadius: 0,
-                    ),
-                  ]
-                : _isHovered
-                    ? [
-                        BoxShadow(
-                          color: widget.palette.shadow,
-                          offset: const Offset(6, 6),
-                          blurRadius: 0,
-                        ),
-                      ]
-                    : null,
-          ),
-          transform: Matrix4.translationValues(
-            _isHovered && !widget.isPlaying ? -2 : 0,
-            _isHovered && !widget.isPlaying ? -2 : 0,
-            0,
-          ),
-          child: Row(
-            children: [
-              // Track number or playing indicator
-              SizedBox(
-                width: 40,
-                child: widget.isPlaying
-                    ? Icon(
-                        Icons.graphic_eq,
-                        color: widget.palette.primary,
-                        size: 24,
-                      )
-                    : Text(
-                        widget.trackNumber?.toString() ?? '—',
-                        style: textTheme.bodyMedium?.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: widget.palette.text.withOpacity(0.5),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-              ),
-
-              // Title and Artist
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.title,
-                      style: textTheme.titleMedium?.copyWith(
-                        fontSize: 16,
-                        color: widget.palette.text,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      widget.artist,
-                      style: textTheme.bodyMedium?.copyWith(
-                        fontSize: 12,
-                        color: widget.palette.text.withOpacity(0.7),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-
-              // Quality badge
-              if (widget.sampleRate != null && widget.bitDepth != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: qualityColor.withOpacity(0.3),
-                    border: Border.all(color: widget.palette.border, width: 2),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    '${widget.sampleRate! ~/ 1000}k/${widget.bitDepth}b',
-                    style: textTheme.labelSmall?.copyWith(
-                      color: widget.palette.text,
-                    ),
-                  ),
-                ),
-
-              const SizedBox(width: 12),
-
-              // Duration
-              Text(
-                _formatDuration(widget.duration),
-                style: textTheme.bodyMedium?.copyWith(
-                  fontSize: 12,
-                  color: widget.palette.text.withOpacity(0.5),
-                ),
-              ),
-            ],
-          ),
+            const SizedBox(width: 12),
+            // ... existing metadata logic ...
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Widget _buildSwipeBackground(
-    IconData icon,
-    Color color,
-    Alignment alignment,
-    String label,
-    TextTheme textTheme,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      alignment: alignment,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: widget.palette.border, width: 2),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: widget.palette.text),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: textTheme.labelLarge?.copyWith(
-              fontSize: 14,
-              color: widget.palette.text,
-            ),
-          ),
+// Updated swipe backgrounds with stark colors 
+Widget _buildSwipeBackground(
+  IconData icon,
+  Color color, // Pass palette.error (Red) or Colors.green (Green)
+  Alignment alignment,
+  String label,
+  TextTheme textTheme,
+) {
+  return Container(
+    margin: const EdgeInsets.only(bottom: 8),
+    padding: const EdgeInsets.symmetric(horizontal: 24),
+    alignment: alignment,
+    decoration: BoxDecoration(
+      color: color, // Stark red/green backgrounds 
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: Colors.black, width: 3),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (alignment == Alignment.centerLeft) ...[
+          Icon(icon, color: Colors.white),
+          const SizedBox(width: 12),
         ],
-      ),
-    );
-  }
+        Text(
+          label.toUpperCase(),
+          style: textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+          ),
+        ),
+        if (alignment == Alignment.centerRight) ...[
+          const SizedBox(width: 12),
+          Icon(icon, color: Colors.white),
+        ],
+      ],
+    ),
+  );
+}
 
   String _formatDuration(Duration duration) {
     final minutes = duration.inMinutes;

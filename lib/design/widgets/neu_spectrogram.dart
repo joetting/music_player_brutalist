@@ -1,21 +1,17 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 
-/// Neubrutalist Spectrogram/Frequency Analyzer
-/// Features:
-/// - Hard-edged frequency bars (brutalist style)
-/// - Grid overlay with technical labels
-/// - Color-coded frequency ranges
-/// - Real-time animation (mockup with random data)
-/// - Frequency labels (20Hz, 1kHz, 20kHz)
-class NeuSpectrogram extends StatelessWidget {
+/// Neubrutalist Mel-Spectrogram Diagnostic Tool
+/// 
+/// Visualizes high-frequency audio data in real-time. [cite: 1]
+/// Rejects standard "screensaver" aesthetics for a "measurement tool" look. [cite: 3, 5]
+class NeuSpectrogram extends StatefulWidget {
   final RatholePalette palette;
   final double height;
   final bool showGrid;
   final bool showLabels;
-  final List<double>? frequencyData;
+  final List<double>? frequencyData; // Real-time FFT magnitudes
 
   const NeuSpectrogram({
     super.key,
@@ -27,450 +23,155 @@ class NeuSpectrogram extends StatelessWidget {
   });
 
   @override
+  State<NeuSpectrogram> createState() => _NeuSpectrogramState();
+}
+
+class _NeuSpectrogramState extends State<NeuSpectrogram>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _mockController;
+  final math.Random _random = math.Random();
+
+  @override
+  void initState() {
+    super.initState();
+    // Animation for mock data when real FFT stream is absent [cite: 5]
+    _mockController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _mockController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Use static mock data for now to avoid animation issues
-    final data = frequencyData ?? _generateStaticMockData();
-
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        color: palette.surface,
-        border: Border.all(color: palette.border, width: 3),
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: palette.shadow,
-            offset: const Offset(6, 6),
-            blurRadius: 0,
+    return AnimatedBuilder(
+      animation: _mockController,
+      builder: (context, child) {
+        return Container(
+          height: widget.height,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.black, // Stark background for structural visibility [cite: 1, 3]
+            border: Border.all(color: widget.palette.border, width: 3),
+            borderRadius: BorderRadius.circular(4),
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(5),
-        child: Stack(
-          children: [
-            // Spectrogram bars
-            CustomPaint(
-              size: Size(double.infinity, height),
-              painter: _SpectrogramPainter(
-                data: data,
-                palette: palette,
-                showGrid: showGrid,
-              ),
+          child: CustomPaint(
+            painter: _SpectrogramPainter(
+              palette: widget.palette,
+              // Use provided data or generate mock signal for demo [cite: 5]
+              data: widget.frequencyData ??
+                  List.generate(64, (i) => _random.nextDouble()),
+              showGrid: widget.showGrid,
+              showLabels: widget.showLabels,
             ),
-
-            // Frequency labels
-            if (showLabels) _buildLabels(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  List<double> _generateStaticMockData() {
-    // Generate static demo data (no animation)
-    return List.generate(64, (i) {
-      final baseLoudness = 1.0 - (i / 64);
-      return (baseLoudness * 0.7 + (i % 3) * 0.1).clamp(0.0, 1.0);
-    });
-  }
-
-  Widget _buildLabels() {
-    return Positioned(
-      left: 8,
-      right: 8,
-      bottom: 8,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _buildLabel('20Hz'),
-          _buildLabel('200Hz'),
-          _buildLabel('2kHz'),
-          _buildLabel('20kHz'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLabel(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      decoration: BoxDecoration(
-        color: palette.surface.withOpacity(0.9),
-        border: Border.all(color: palette.border, width: 1),
-      ),
-      child: Text(
-        text,
-        style: GoogleFonts.spaceMono(
-          fontSize: 9,
-          fontWeight: FontWeight.w700,
-          color: palette.text,
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
 
 class _SpectrogramPainter extends CustomPainter {
-  final List<double> data;
   final RatholePalette palette;
+  final List<double> data;
   final bool showGrid;
+  final bool showLabels;
 
   _SpectrogramPainter({
-    required this.data,
     required this.palette,
+    required this.data,
     required this.showGrid,
+    required this.showLabels,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (data.isEmpty) return;
+    _drawBars(canvas, size);
+    if (showGrid) _drawDiagnosticOverlay(canvas, size);
+  }
 
+  void _drawBars(Canvas canvas, Size size) {
     final barWidth = size.width / data.length;
+    final paint = Paint()..style = PaintingStyle.fill;
 
-    // Draw grid first
-    if (showGrid) {
-      _drawGrid(canvas, size);
-    }
+  for (int i = 0; i < data.length; i++) {
+      final barHeight = data[i] * size.height;
+      
+      // Neobrutalist sharp rectangular bars (no rounded corners) [cite: 1, 5]
+      // Color coding by frequency range: Bass (Red) -> Treble (Green) [cite: 5]
+      if (i < data.length * 0.2) {
+        paint.color = palette.error; // Bass
+      } else if (i < data.length * 0.5) {
+        paint.color = Colors.amber; // Low-mid
+      } else if (i < data.length * 0.8) {
+        paint.color = palette.primary; // High-mid
+      } else {
+        paint.color = Colors.lightGreenAccent; // Treble
+      }
 
-    // Draw frequency bars
-    for (int i = 0; i < data.length; i++) {
-      final x = i * barWidth;
-      final amplitude = data[i];
-      final barHeight = amplitude * size.height;
-
-      // Color code by frequency range
-      final color = _getFrequencyColor(i / data.length);
-
-      final paint = Paint()
-        ..color = color
-        ..style = PaintingStyle.fill;
-
-      // Hard-edged bars (no rounded corners!)
       canvas.drawRect(
         Rect.fromLTWH(
-          x + 1, // Small gap between bars
+          i * barWidth,
           size.height - barHeight,
-          barWidth - 2,
+          barWidth - 1, // 1px gap for structural visibility [cite: 3]
           barHeight,
         ),
         paint,
       );
-
-      // Border on each bar for extra brutalism
-      final borderPaint = Paint()
-        ..color = palette.border
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1;
-
-      canvas.drawRect(
-        Rect.fromLTWH(
-          x + 1,
-          size.height - barHeight,
-          barWidth - 2,
-          barHeight,
-        ),
-        borderPaint,
-      );
     }
   }
 
-  void _drawGrid(Canvas canvas, Size size) {
+  /// Draws the diagnostic grid and labels using monospace typography [cite: 3, 5]
+  void _drawDiagnosticOverlay(Canvas canvas, Size size) {
     final gridPaint = Paint()
-      ..color = palette.border.withOpacity(0.2)
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
+      ..color = palette.border.withValues(alpha: 0.1) 
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
 
-    // Horizontal lines (dB levels)
-    for (int i = 1; i < 4; i++) {
-      final y = (size.height / 4) * i;
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y),
-        gridPaint,
-      );
+    // 1. Frequency Grid (Hz markers)
+    final frequencies = ['20Hz', '1kHz', '5kHz', '20kHz'];
+    for (int i = 0; i < frequencies.length; i++) {
+      double x = (size.width / (frequencies.length - 1)) * i;
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
+      
+      if (showLabels) {
+        _drawMonospaceText(canvas, frequencies[i], Offset(x + 4, size.height - 15));
+      }
     }
 
-    // Vertical lines (frequency markers)
-    for (int i = 1; i < 4; i++) {
-      final x = (size.width / 4) * i;
-      canvas.drawLine(
-        Offset(x, 0),
-        Offset(x, size.height),
-        gridPaint,
-      );
-    }
-  }
-
-  Color _getFrequencyColor(double position) {
-    // Color code frequency ranges
-    if (position < 0.25) {
-      // Bass (20Hz-200Hz) - Red
-      return const Color(0xFFFF006E);
-    } else if (position < 0.5) {
-      // Low-mid (200Hz-2kHz) - Yellow
-      return const Color(0xFFFFDB00);
-    } else if (position < 0.75) {
-      // High-mid (2kHz-10kHz) - Cyan
-      return const Color(0xFF00D4FF);
-    } else {
-      // Treble (10kHz-20kHz) - Green
-      return const Color(0xFF00FF9F);
+    // 2. Amplitude Grid (dB markers)
+    final dbLevels = ['0dB', '-24dB', '-48dB', '-96dB'];
+    for (int i = 0; i < dbLevels.length; i++) {
+      double y = (size.height / (dbLevels.length - 1)) * i;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+      
+      if (showLabels) {
+        _drawMonospaceText(canvas, dbLevels[i], Offset(5, y + 2));
+      }
     }
   }
 
-  @override
-  bool shouldRepaint(_SpectrogramPainter oldDelegate) {
-    return oldDelegate.data != data;
-  }
-}
-
-/// Compact audio info badge
-class NeuAudioInfoBadge extends StatelessWidget {
-  final String format;
-  final int sampleRate;
-  final int bitDepth;
-  final bool exclusiveMode;
-  final RatholePalette palette;
-  final VoidCallback? onTap;
-
-  const NeuAudioInfoBadge({
-    super.key,
-    required this.format,
-    required this.sampleRate,
-    required this.bitDepth,
-    required this.exclusiveMode,
-    required this.palette,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final qualityColor = AudioQualityColors.forSampleRate(sampleRate);
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: qualityColor.withOpacity(0.2),
-          border: Border.all(color: palette.border, width: 2),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Format
-            Text(
-              format.toUpperCase(),
-              style: GoogleFonts.spaceMono(
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-                color: palette.text,
-              ),
-            ),
-            const SizedBox(width: 6),
-
-            // Divider
-            Container(
-              width: 1,
-              height: 12,
-              color: palette.border,
-            ),
-            const SizedBox(width: 6),
-
-            // Sample rate / bit depth
-            Text(
-              '${sampleRate ~/ 1000}kHz/$bitDepth-bit',
-              style: GoogleFonts.spaceMono(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: palette.text,
-              ),
-            ),
-            const SizedBox(width: 6),
-
-            // Exclusive mode indicator
-            if (exclusiveMode)
-              Icon(
-                Icons.bolt,
-                size: 14,
-                color: palette.primary,
-              ),
-          ],
+  void _drawMonospaceText(Canvas canvas, String text, Offset offset) {
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          color: palette.text.withValues(alpha: 0.5),
+          fontFamily: 'JetBrains Mono', // Monospace font as per research [cite: 3, 5]
+          fontSize: 9,
         ),
       ),
+      textDirection: TextDirection.ltr,
     );
+    textPainter.layout();
+    textPainter.paint(canvas, offset);
   }
-}
-
-/// Expandable audio path diagnostic panel
-class NeuAudioPanel extends StatelessWidget {
-  final String sourceFormat;
-  final int sourceSampleRate;
-  final int sourceBitDepth;
-  final String outputDevice;
-  final int outputSampleRate;
-  final int outputBitDepth;
-  final bool exclusiveMode;
-  final bool bitPerfect;
-  final RatholePalette palette;
-
-  const NeuAudioPanel({
-    super.key,
-    required this.sourceFormat,
-    required this.sourceSampleRate,
-    required this.sourceBitDepth,
-    required this.outputDevice,
-    required this.outputSampleRate,
-    required this.outputBitDepth,
-    required this.exclusiveMode,
-    required this.bitPerfect,
-    required this.palette,
-  });
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        border: Border.all(color: palette.border, width: 3),
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: palette.shadow,
-            offset: const Offset(6, 6),
-            blurRadius: 0,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Title
-          Text(
-            'AUDIO PATH',
-            style: GoogleFonts.spaceGrotesk(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              color: palette.text,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Source
-          _buildInfoRow(
-            'Source',
-            '$sourceFormat • ${sourceSampleRate ~/ 1000}kHz/$sourceBitDepth-bit',
-            palette.primary,
-          ),
-          const SizedBox(height: 8),
-
-          // Arrow
-          Center(
-            child: Icon(
-              Icons.arrow_downward,
-              color: palette.text.withOpacity(0.5),
-              size: 20,
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // Output
-          _buildInfoRow(
-            'Output',
-            '$outputDevice • ${outputSampleRate ~/ 1000}kHz/$outputBitDepth-bit',
-            palette.secondary,
-          ),
-          const SizedBox(height: 12),
-
-          // Status indicators
-          Row(
-            children: [
-              _buildStatusChip(
-                exclusiveMode ? 'Exclusive Mode' : 'Shared Mode',
-                exclusiveMode,
-              ),
-              const SizedBox(width: 8),
-              _buildStatusChip(
-                bitPerfect ? 'Bit-Perfect' : 'Resampled',
-                bitPerfect,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        border: Border.all(color: palette.border, width: 2),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Row(
-        children: [
-          Text(
-            label.toUpperCase(),
-            style: GoogleFonts.robotoCondensed(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: palette.text.withOpacity(0.6),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              value,
-              style: GoogleFonts.spaceMono(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: palette.text,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusChip(String label, bool isActive) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: isActive
-            ? palette.primary.withOpacity(0.2)
-            : palette.error.withOpacity(0.1),
-        border: Border.all(
-          color: isActive ? palette.primary : palette.error,
-          width: 2,
-        ),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isActive ? Icons.check_circle : Icons.cancel,
-            size: 12,
-            color: isActive ? palette.primary : palette.error,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: GoogleFonts.spaceMono(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: palette.text,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  bool shouldRepaint(covariant _SpectrogramPainter oldDelegate) => true;
 }

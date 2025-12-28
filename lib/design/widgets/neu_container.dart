@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 /// - Hard shadows
 /// - Asymmetric corner options
 /// - Background color variants
+/// - OLED/Midnight theme optimization 
 class NeuContainer extends StatelessWidget {
   final Widget child;
   final RatholePalette palette;
@@ -21,6 +22,7 @@ class NeuContainer extends StatelessWidget {
   final bool asymmetricCorners;
   final bool hasShadow;
   final Offset shadowOffset;
+  final bool isMidnightTheme; // Added for OLED/Midnight optimization 
 
   const NeuContainer({
     super.key,
@@ -37,6 +39,7 @@ class NeuContainer extends StatelessWidget {
     this.asymmetricCorners = false,
     this.hasShadow = true,
     this.shadowOffset = const Offset(6, 6),
+    this.isMidnightTheme = false, // Default to standard Neobrutalist 
   });
 
   @override
@@ -45,6 +48,7 @@ class NeuContainer extends StatelessWidget {
     final bColor = borderColor ?? palette.border;
     final sColor = shadowColor ?? palette.shadow;
 
+    // Use asymmetric corners if requested (Truth to Materials aesthetic) 
     final radius = borderRadius ??
         (asymmetricCorners
             ? const BorderRadius.only(
@@ -63,15 +67,17 @@ class NeuContainer extends StatelessWidget {
         color: bgColor,
         border: Border.all(
           color: bColor,
-          width: borderWidth,
+          // Lowered border contrast/thickness for Midnight theme 
+          width: isMidnightTheme ? 1.0 : borderWidth,
         ),
         borderRadius: radius,
-        boxShadow: hasShadow
+        // Removes offset shadows in Midnight/OLED mode for battery/eye strain 
+        boxShadow: (hasShadow && !isMidnightTheme)
             ? [
                 BoxShadow(
                   color: sColor,
                   offset: shadowOffset,
-                  blurRadius: 0, // Hard shadow!
+                  blurRadius: 0, // Hard shadow! 
                 ),
               ]
             : null,
@@ -112,6 +118,7 @@ class NeuCard extends StatelessWidget {
   final RatholePalette palette;
   final VoidCallback? onTap;
   final bool isSelected;
+  final bool isMidnightTheme;
 
   const NeuCard({
     super.key,
@@ -120,6 +127,7 @@ class NeuCard extends StatelessWidget {
     required this.palette,
     this.onTap,
     this.isSelected = false,
+    this.isMidnightTheme = false,
   });
 
   @override
@@ -128,6 +136,7 @@ class NeuCard extends StatelessWidget {
       onTap: onTap,
       child: NeuContainer(
         palette: palette,
+        isMidnightTheme: isMidnightTheme,
         borderColor: isSelected ? palette.primary : palette.border,
         backgroundColor: isSelected
             ? palette.primary.withOpacity(0.1)
