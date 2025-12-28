@@ -219,6 +219,11 @@ class RatholeTheme {
         fontWeight: FontWeight.w700,
         color: palette.text,
       ),
+      titleSmall: GoogleFonts.robotoCondensed(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        color: palette.text,
+      ),
 
       // Body - For metadata, track lists
       bodyLarge: GoogleFonts.spaceMono(
@@ -238,6 +243,11 @@ class RatholeTheme {
         fontWeight: FontWeight.w700,
         color: palette.text,
         letterSpacing: 1.2,
+      ),
+      labelSmall: GoogleFonts.spaceMono(
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+        color: palette.text.withOpacity(0.7),
       ),
     );
   }

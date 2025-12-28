@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 
 /// Adaptive scaffold that changes layout based on platform
@@ -15,6 +14,8 @@ class NeuAdaptiveScaffold extends StatelessWidget {
   final Function(int)? onNavSelected;
   final RatholePalette palette;
   final bool isDesktop;
+  final Widget? floatingActionButton;
+  final FloatingActionButtonLocation? floatingActionButtonLocation;
 
   const NeuAdaptiveScaffold({
     super.key,
@@ -27,40 +28,47 @@ class NeuAdaptiveScaffold extends StatelessWidget {
     this.onNavSelected,
     required this.palette,
     this.isDesktop = false,
+    this.floatingActionButton,
+    this.floatingActionButtonLocation,
   });
 
   @override
   Widget build(BuildContext context) {
-    return isDesktop ? _buildDesktopLayout() : _buildMobileLayout();
+    return isDesktop ? _buildDesktopLayout(context) : _buildMobileLayout(context);
   }
 
-  Widget _buildDesktopLayout() {
+  Widget _buildDesktopLayout(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    
     return Scaffold(
       backgroundColor: palette.background,
       body: Row(
         children: [
-          // Left sidebar navigation
           if (navItems != null && navItems!.isNotEmpty)
-            _buildDesktopSidebar(),
+            _buildDesktopSidebar(textTheme),
 
-          // Main content area with optional sidebar
           Expanded(
             child: Row(
               children: [
-                // Optional left panel (folder tree, playlists, etc.)
                 if (sidebar != null)
-                  SizedBox(
-                    width: 250,
+                  NeuResizablePanel(
+                    initialWidth: 250,
+                    minWidth: 180,
+                    maxWidth: 450,
+                    palette: palette,
                     child: sidebar!,
                   ),
 
-                // Main body
                 Expanded(child: body),
 
-                // Optional right panel (queue, lyrics, etc.)
                 if (rightPanel != null)
-                  SizedBox(
-                    width: 300,
+                  NeuResizablePanel(
+                    initialWidth: 300,
+                    minWidth: 200,
+                    maxWidth: 500,
+                    palette: palette,
+                    showHandle: true,
+                    isRightPanel: true,
                     child: rightPanel!,
                   ),
               ],
@@ -71,7 +79,7 @@ class NeuAdaptiveScaffold extends StatelessWidget {
     );
   }
 
-  Widget _buildDesktopSidebar() {
+  Widget _buildDesktopSidebar(TextTheme textTheme) {
     return Container(
       width: 200,
       decoration: BoxDecoration(
@@ -93,9 +101,8 @@ class NeuAdaptiveScaffold extends StatelessWidget {
             ),
             child: Text(
               title,
-              style: GoogleFonts.spaceGrotesk(
+              style: textTheme.headlineMedium?.copyWith(
                 fontSize: 18,
-                fontWeight: FontWeight.w900,
                 color: palette.text,
               ),
             ),
@@ -112,43 +119,45 @@ class NeuAdaptiveScaffold extends StatelessWidget {
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 4),
-                  child: GestureDetector(
-                    onTap: () => onNavSelected?.call(index),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? palette.primary.withOpacity(0.2)
-                            : null,
-                        border: isSelected
-                            ? Border.all(color: palette.primary, width: 2)
-                            : null,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            item.icon,
-                            size: 18,
-                            color: isSelected
-                                ? palette.primary
-                                : palette.text.withOpacity(0.7),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            item.label,
-                            style: GoogleFonts.robotoCondensed(
-                              fontSize: 14,
-                              fontWeight: isSelected
-                                  ? FontWeight.w700
-                                  : FontWeight.w600,
-                              color: palette.text,
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () => onNavSelected?.call(index),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? palette.primary.withOpacity(0.2)
+                              : null,
+                          border: isSelected
+                              ? Border.all(color: palette.primary, width: 2)
+                              : null,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              item.icon,
+                              size: 18,
+                              color: isSelected
+                                  ? palette.primary
+                                  : palette.text.withOpacity(0.7),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 12),
+                            Text(
+                              item.label,
+                              style: textTheme.titleSmall?.copyWith(
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                                color: palette.text,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -161,15 +170,16 @@ class NeuAdaptiveScaffold extends StatelessWidget {
     );
   }
 
-  Widget _buildMobileLayout() {
+  Widget _buildMobileLayout(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    
     return Scaffold(
       backgroundColor: palette.background,
       appBar: AppBar(
         title: Text(
           title,
-          style: GoogleFonts.spaceGrotesk(
+          style: textTheme.headlineMedium?.copyWith(
             fontSize: 20,
-            fontWeight: FontWeight.w900,
             color: palette.text,
           ),
         ),
@@ -180,13 +190,15 @@ class NeuAdaptiveScaffold extends StatelessWidget {
         ),
       ),
       body: body,
+      floatingActionButton: floatingActionButton,
+      floatingActionButtonLocation: floatingActionButtonLocation,
       bottomNavigationBar: navItems != null && navItems!.isNotEmpty
-          ? _buildMobileBottomNav()
+          ? _buildMobileBottomNav(textTheme)
           : null,
     );
   }
 
-  Widget _buildMobileBottomNav() {
+  Widget _buildMobileBottomNav(TextTheme textTheme) {
     return Container(
       decoration: BoxDecoration(
         color: palette.surface,
@@ -233,7 +245,7 @@ class NeuAdaptiveScaffold extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         item.label,
-                        style: GoogleFonts.robotoCondensed(
+                        style: textTheme.labelSmall?.copyWith(
                           fontSize: 11,
                           fontWeight: isSelected
                               ? FontWeight.w700
@@ -320,6 +332,7 @@ class NeuResizablePanel extends StatefulWidget {
   final double maxWidth;
   final RatholePalette palette;
   final bool showHandle;
+  final bool isRightPanel;
 
   const NeuResizablePanel({
     super.key,
@@ -329,6 +342,7 @@ class NeuResizablePanel extends StatefulWidget {
     this.maxWidth = 600,
     required this.palette,
     this.showHandle = true,
+    this.isRightPanel = false,
   });
 
   @override
@@ -346,6 +360,39 @@ class _NeuResizablePanelState extends State<NeuResizablePanel> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isRightPanel) {
+      return Row(
+        children: [
+          if (widget.showHandle)
+            GestureDetector(
+              onHorizontalDragUpdate: (details) {
+                setState(() {
+                  _width = (_width - details.delta.dx)
+                      .clamp(widget.minWidth, widget.maxWidth);
+                });
+              },
+              child: MouseRegion(
+                cursor: SystemMouseCursors.resizeColumn,
+                child: Container(
+                  width: 6,
+                  color: widget.palette.border.withOpacity(0.5),
+                  child: Center(
+                    child: Container(
+                      width: 2,
+                      color: widget.palette.border,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          SizedBox(
+            width: _width,
+            child: widget.child,
+          ),
+        ],
+      );
+    }
+
     return Row(
       children: [
         SizedBox(
