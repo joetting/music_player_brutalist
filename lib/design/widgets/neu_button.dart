@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
+import 'ascii_icons.dart'; // Required for .toAscii() extension and AsciiIcon
 
-/// Neubrutalist Button
-/// Features:
-/// - Hard shadows
-/// - Bold borders
-/// - Press animation (shadow reduces on tap)
-/// - Customizable colors
+/// Standard Neubrutalist Button for text/child content
 class NeuButton extends StatefulWidget {
   final Widget child;
   final VoidCallback onPressed;
@@ -53,12 +49,9 @@ class _NeuButtonState extends State<NeuButton> {
         duration: const Duration(milliseconds: 100),
         width: widget.width,
         height: widget.height,
-        padding: widget.padding ??
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: widget.padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: widget.enabled
-              ? bgColor
-              : bgColor.withOpacity(0.5),
+          color: widget.enabled ? bgColor : bgColor.withOpacity(0.5),
           border: Border.all(color: borderCol, width: 3),
           borderRadius: BorderRadius.circular(8),
           boxShadow: [
@@ -89,7 +82,7 @@ class _NeuButtonState extends State<NeuButton> {
   }
 }
 
-/// Icon button variant
+/// Icon button variant with integrated ASCII support
 class NeuIconButton extends StatefulWidget {
   final IconData icon;
   final VoidCallback onPressed;
@@ -121,6 +114,9 @@ class _NeuIconButtonState extends State<NeuIconButton> {
   Widget build(BuildContext context) {
     final bgColor = widget.backgroundColor ?? widget.palette.primary;
     final icColor = widget.iconColor ?? widget.palette.text;
+    
+    // Automatically convert the Material IconData to an ASCII glyph if available
+    final asciiGlyph = widget.icon.toAscii();
 
     return GestureDetector(
       onTapDown: widget.enabled ? (_) => setState(() => _isPressed = true) : null,
@@ -149,10 +145,18 @@ class _NeuIconButtonState extends State<NeuIconButton> {
           _isPressed ? 4 : 0,
           0,
         ),
-        child: Icon(
-          widget.icon,
-          color: icColor,
-          size: widget.size * 0.5,
+        child: Center(
+          child: asciiGlyph != null 
+            ? AsciiIcon(
+                asciiGlyph, 
+                size: widget.size * 0.4, // Scale for monospace font
+                color: icColor,
+              )
+            : Icon(
+                widget.icon,
+                color: icColor,
+                size: widget.size * 0.5,
+              ),
         ),
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'ascii_icons.dart';
 
 /// Detailed audio path diagnostic panel.
 /// Visualizes the flow from file source to hardware output.
@@ -36,7 +37,11 @@ class NeuAudioPanel extends StatelessWidget {
         border: Border.all(color: palette.border, width: 3),
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
-          BoxShadow(color: palette.shadow, offset: const Offset(8, 8)),
+          BoxShadow(
+            color: palette.shadow, 
+            offset: const Offset(8, 8),
+            blurRadius: 0,
+          ),
         ],
       ),
       child: Column(
@@ -49,7 +54,7 @@ class NeuAudioPanel extends StatelessWidget {
               fontSize: 12,
               fontWeight: FontWeight.w900,
               letterSpacing: 1.2,
-              color: palette.text.withValues(alpha: 0.5),
+              color: palette.text.withOpacity(0.5),
             ),
           ),
           const SizedBox(height: 24),
@@ -58,7 +63,7 @@ class NeuAudioPanel extends StatelessWidget {
           _buildStage(
             'SOURCE_FILE',
             '$sourceFormat • ${sourceSampleRate ~/ 1000}kHz / $sourceBitDepth-bit',
-            Icons.insert_drive_file,
+            AsciiGlyph.file,
             AudioQualityColors.forSampleRate(sourceSampleRate),
           ),
           
@@ -67,7 +72,7 @@ class NeuAudioPanel extends StatelessWidget {
           _buildStage(
             'HARDWARE_OUTPUT',
             '$outputDevice • ${outputSampleRate ~/ 1000}kHz / $outputBitDepth-bit',
-            Icons.speaker_group,
+            AsciiGlyph.speaker,
             AudioQualityColors.forSampleRate(outputSampleRate),
           ),
           
@@ -86,7 +91,7 @@ class NeuAudioPanel extends StatelessWidget {
     );
   }
 
-  Widget _buildStage(String label, String details, IconData icon, Color qualityColor) {
+  Widget _buildStage(String label, String details, AsciiGlyph glyph, Color qualityColor) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -96,20 +101,23 @@ class NeuAudioPanel extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, color: qualityColor, size: 24),
+          AsciiIcon(glyph, color: qualityColor, size: 24),
           const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
-              ),
-              Text(
-                details,
-                style: const TextStyle(fontFamily: 'JetBrains Mono', fontSize: 12),
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
+                ),
+                Text(
+                  details,
+                  style: const TextStyle(fontFamily: 'JetBrains Mono', fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -131,15 +139,15 @@ class NeuAudioPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: active ? palette.primary.withValues(alpha: 0.2) : palette.error.withValues(alpha: 0.2),
+        color: active ? palette.primary.withOpacity(0.2) : palette.error.withOpacity(0.2),
         border: Border.all(color: active ? palette.primary : palette.error, width: 2),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            active ? Icons.check_circle : Icons.error,
+          AsciiIcon(
+            active ? AsciiGlyph.check : AsciiGlyph.error,
             size: 14,
             color: active ? palette.primary : palette.error,
           ),

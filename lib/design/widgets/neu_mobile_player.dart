@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
+import 'ascii_icons.dart';
 import 'neu_spectrogram.dart';
 import 'neu_audio_info_badge.dart';
 import 'neu_button.dart';
@@ -61,9 +62,11 @@ class NeuMobileExpandedPlayer extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.keyboard_arrow_down, color: palette.text, size: 32),
+        leading: AsciiIconButton(
+          glyph: AsciiGlyph.chevronDown,
           onPressed: onClose,
+          size: 32,
+          color: palette.text,
         ),
         title: Text(
           'NOW PLAYING',
@@ -71,14 +74,15 @@ class NeuMobileExpandedPlayer extends StatelessWidget {
             fontSize: 14,
             fontWeight: FontWeight.w900,
             letterSpacing: 2.0,
-            color: palette.text.withValues(alpha: 0.6),
+            color: palette.text.withOpacity(0.6),
           ),
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: Icon(Icons.more_vert, color: palette.text),
+          AsciiIconButton(
+            glyph: AsciiGlyph.more,
             onPressed: () {}, // Context menu for technical properties
+            color: palette.text,
           ),
         ],
       ),
@@ -106,10 +110,10 @@ class NeuMobileExpandedPlayer extends StatelessWidget {
                 child: Stack(
                   children: [
                     Center(
-                      child: Icon(
-                        Icons.album,
-                        size: 180,
-                        color: palette.primary.withValues(alpha: 0.1),
+                      child: AsciiIcon(
+                        AsciiGlyph.album,
+                        size: 160,
+                        color: palette.primary.withOpacity(0.1),
                       ),
                     ),
                     // Mel-Spectrogram for signal verification
@@ -156,7 +160,7 @@ class NeuMobileExpandedPlayer extends StatelessWidget {
                             "$artistName ${albumTitle != null ? '— $albumTitle' : ''}",
                             style: GoogleFonts.spaceMono(
                               fontSize: 13,
-                              color: palette.text.withValues(alpha: 0.7),
+                              color: palette.text.withOpacity(0.7),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -197,12 +201,13 @@ class NeuMobileExpandedPlayer extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // Use integrated NeuIconButton which handles IconData to Ascii conversion
                 NeuIconButton(
                   icon: isShuffled ? Icons.shuffle_on : Icons.shuffle,
                   onPressed: onShuffle,
                   palette: palette,
                   size: 48,
-                  backgroundColor: isShuffled ? palette.accent.withValues(alpha: 0.2) : null,
+                  backgroundColor: isShuffled ? palette.accent.withOpacity(0.2) : null,
                 ),
                 Row(
                   children: [
@@ -234,7 +239,7 @@ class NeuMobileExpandedPlayer extends StatelessWidget {
                   onPressed: onRepeat,
                   palette: palette,
                   size: 48,
-                  backgroundColor: isRepeating ? palette.accent.withValues(alpha: 0.2) : null,
+                  backgroundColor: isRepeating ? palette.accent.withOpacity(0.2) : null,
                 ),
               ],
             ),
@@ -244,16 +249,16 @@ class NeuMobileExpandedPlayer extends StatelessWidget {
             // 5. Volume Slider
             Row(
               children: [
-                Icon(Icons.volume_down, size: 16, color: palette.text.withValues(alpha: 0.5)),
+                AsciiIcon(AsciiGlyph.volumeDown, size: 16, color: palette.text.withOpacity(0.5)),
                 Expanded(
                   child: Slider(
                     value: volume,
                     onChanged: onVolumeChange,
                     activeColor: palette.secondary,
-                    inactiveColor: palette.border.withValues(alpha: 0.1),
+                    inactiveColor: palette.border.withOpacity(0.1),
                   ),
                 ),
-                Icon(Icons.volume_up, size: 16, color: palette.text.withValues(alpha: 0.5)),
+                AsciiIcon(AsciiGlyph.volumeUp, size: 16, color: palette.text.withOpacity(0.5)),
               ],
             ),
             
