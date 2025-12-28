@@ -10,12 +10,12 @@ import '../theme/app_theme.dart';
 /// - Color-coded frequency ranges
 /// - Real-time animation (mockup with random data)
 /// - Frequency labels (20Hz, 1kHz, 20kHz)
-class NeuSpectrogram extends StatefulWidget {
+class NeuSpectrogram extends StatelessWidget {
   final RatholePalette palette;
   final double height;
   final bool showGrid;
   final bool showLabels;
-  final List<double>? frequencyData; // 0.0 to 1.0 amplitude values
+  final List<double>? frequencyData;
 
   const NeuSpectrogram({
     super.key,
@@ -27,58 +27,19 @@ class NeuSpectrogram extends StatefulWidget {
   });
 
   @override
-  State<NeuSpectrogram> createState() => _NeuSpectrogramState();
-}
-
-class _NeuSpectrogramState extends State<NeuSpectrogram>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  final List<double> _mockData = List.generate(64, (_) => 0.0);
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 50),
-      vsync: this,
-    )..repeat();
-
-    _controller.addListener(() {
-      setState(() {
-        _updateMockData();
-      });
-    });
-  }
-
-  void _updateMockData() {
-    final random = math.Random();
-    for (int i = 0; i < _mockData.length; i++) {
-      // Simulate frequency response - lower frequencies usually have more energy
-      final baseLoudness = 1.0 - (i / _mockData.length);
-      _mockData[i] = (baseLoudness * 0.6 + random.nextDouble() * 0.4)
-          .clamp(0.0, 1.0);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final data = widget.frequencyData ?? _mockData;
+    // Use static mock data for now to avoid animation issues
+    final data = frequencyData ?? _generateStaticMockData();
 
     return Container(
-      height: widget.height,
+      height: height,
       decoration: BoxDecoration(
-        color: widget.palette.surface,
-        border: Border.all(color: widget.palette.border, width: 3),
+        color: palette.surface,
+        border: Border.all(color: palette.border, width: 3),
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: widget.palette.shadow,
+            color: palette.shadow,
             offset: const Offset(6, 6),
             blurRadius: 0,
           ),
@@ -90,20 +51,28 @@ class _NeuSpectrogramState extends State<NeuSpectrogram>
           children: [
             // Spectrogram bars
             CustomPaint(
-              size: Size(double.infinity, widget.height),
+              size: Size(double.infinity, height),
               painter: _SpectrogramPainter(
                 data: data,
-                palette: widget.palette,
-                showGrid: widget.showGrid,
+                palette: palette,
+                showGrid: showGrid,
               ),
             ),
 
             // Frequency labels
-            if (widget.showLabels) _buildLabels(),
+            if (showLabels) _buildLabels(),
           ],
         ),
       ),
     );
+  }
+
+  List<double> _generateStaticMockData() {
+    // Generate static demo data (no animation)
+    return List.generate(64, (i) {
+      final baseLoudness = 1.0 - (i / 64);
+      return (baseLoudness * 0.7 + (i % 3) * 0.1).clamp(0.0, 1.0);
+    });
   }
 
   Widget _buildLabels() {
@@ -127,15 +96,15 @@ class _NeuSpectrogramState extends State<NeuSpectrogram>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       decoration: BoxDecoration(
-        color: widget.palette.surface.withOpacity(0.9),
-        border: Border.all(color: widget.palette.border, width: 1),
+        color: palette.surface.withOpacity(0.9),
+        border: Border.all(color: palette.border, width: 1),
       ),
       child: Text(
         text,
         style: GoogleFonts.spaceMono(
           fontSize: 9,
           fontWeight: FontWeight.w700,
-          color: widget.palette.text,
+          color: palette.text,
         ),
       ),
     );

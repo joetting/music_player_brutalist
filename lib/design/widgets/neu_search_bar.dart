@@ -33,17 +33,21 @@ class NeuSearchBar extends StatefulWidget {
 class _NeuSearchBarState extends State<NeuSearchBar> {
   late FocusNode _focusNode;
   bool _isFocused = false;
+  bool _hasText = false;
 
   @override
   void initState() {
     super.initState();
     _focusNode = widget.focusNode ?? FocusNode();
     _focusNode.addListener(_onFocusChange);
+    widget.controller.addListener(_onTextChange);
+    _hasText = widget.controller.text.isNotEmpty;
   }
 
   @override
   void dispose() {
     _focusNode.removeListener(_onFocusChange);
+    widget.controller.removeListener(_onTextChange);
     if (widget.focusNode == null) {
       _focusNode.dispose();
     }
@@ -51,9 +55,22 @@ class _NeuSearchBarState extends State<NeuSearchBar> {
   }
 
   void _onFocusChange() {
-    setState(() {
-      _isFocused = _focusNode.hasFocus;
-    });
+    if (mounted) {
+      setState(() {
+        _isFocused = _focusNode.hasFocus;
+      });
+    }
+  }
+
+  void _onTextChange() {
+    if (mounted) {
+      final hasText = widget.controller.text.isNotEmpty;
+      if (_hasText != hasText) {
+        setState(() {
+          _hasText = hasText;
+        });
+      }
+    }
   }
 
   @override
@@ -117,7 +134,7 @@ class _NeuSearchBarState extends State<NeuSearchBar> {
           ),
 
           // Clear button
-          if (widget.controller.text.isNotEmpty)
+          if (_hasText)
             IconButton(
               icon: Icon(
                 Icons.close,
@@ -132,7 +149,6 @@ class _NeuSearchBarState extends State<NeuSearchBar> {
                 if (widget.onChanged != null) {
                   widget.onChanged!('');
                 }
-                setState(() {});
               },
             ),
         ],
