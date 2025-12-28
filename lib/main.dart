@@ -16,7 +16,7 @@ import 'design/widgets/neu_audio_info_badge.dart';
 import 'design/widgets/neu_container.dart';
 import 'design/widgets/neu_scrobble_dialogs.dart';
 import 'design/widgets/neu_playlist.dart';
-import 'design/widgets/ascii_icons.dart'; //
+import 'design/widgets/ascii_icons.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -158,7 +158,6 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
   }
 
   void _startPlaybackSimulation() {
-    // Safety check for simulation to prevent NaN or Infinity values
     Future.doWhile(() async {
       await Future.delayed(const Duration(milliseconds: 100));
       if (_isPlaying && mounted) {
@@ -208,7 +207,7 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder( // Ensures layout stability for child calculations
+    return LayoutBuilder(
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth > 800;
         return isDesktop ? _buildDesktopLayout() : _buildMobileLayout();
@@ -234,7 +233,7 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
               ],
             ),
           ),
-          _buildDesktopNowPlayingBar(),
+          if (_currentTrackIndex != null) _buildDesktopNowPlayingBar(),
         ],
       ),
     );
@@ -346,7 +345,7 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
           if (_currentTrackIndex != null)
             NeuAudioInfoBadge(format: 'FLAC', sampleRate: 96000, bitDepth: 24, exclusiveMode: true, palette: widget.palette),
           const SizedBox(height: 12),
-          NeuSpectrogram(palette: widget.palette, height: 160), // Fix for
+          NeuSpectrogram(palette: widget.palette, height: 160, showGrid: true, showLabels: false),
           const SizedBox(height: 12),
           Expanded(
             child: NeuQueueView(
@@ -363,20 +362,45 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
   }
 
   Widget _buildDesktopNowPlayingBar() {
-    if (_currentTrackIndex == null) return const SizedBox.shrink();
     final track = _tracks[_currentTrackIndex!];
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: widget.palette.surface, border: Border(top: BorderSide(color: widget.palette.border, width: 3))),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          NeuProgressBar(value: _progress, palette: widget.palette, showLabels: true, leftLabel: _formatDuration(_position), rightLabel: _formatDuration(_duration), onChanged: (v) => setState(() => _progress = v)),
+          NeuProgressBar(
+            value: _progress,
+            palette: widget.palette,
+            showLabels: true,
+            leftLabel: _formatDuration(_position),
+            rightLabel: _formatDuration(_duration),
+            onChanged: (v) => setState(() => _progress = v),
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
-              Container(width: 56, height: 56, decoration: BoxDecoration(color: widget.palette.primary.withOpacity(0.2), border: Border.all(color: widget.palette.border, width: 2), borderRadius: BorderRadius.circular(8)), child: AsciiIcon(AsciiGlyph.album, size: 32, color: widget.palette.primary)),
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: widget.palette.primary.withOpacity(0.2),
+                  border: Border.all(color: widget.palette.border, width: 2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: AsciiIcon(AsciiGlyph.album, size: 32, color: widget.palette.primary),
+              ),
               const SizedBox(width: 16),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(track['title'], style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), Text('${track['artist']} • ${track['album']}', style: TextStyle(fontSize: 12, color: widget.palette.text.withOpacity(0.7)))])),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(track['title'], style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text('${track['artist']} • ${track['album']}', style: TextStyle(fontSize: 12, color: widget.palette.text.withOpacity(0.7)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+              ),
               NeuIconButton(icon: Icons.skip_previous, onPressed: _skipToPrevious, palette: widget.palette, size: 40),
               const SizedBox(width: 8),
               NeuIconButton(icon: _isPlaying ? Icons.pause : Icons.play_arrow, onPressed: _togglePlayPause, palette: widget.palette, backgroundColor: widget.palette.primary, size: 48),
@@ -501,21 +525,27 @@ class NeuMobileMiniPlayer extends StatelessWidget {
               children: [
                 Container(width: 48, height: 48, decoration: BoxDecoration(color: palette.primary.withOpacity(0.2), border: Border.all(color: palette.border, width: 2), borderRadius: BorderRadius.circular(8)), child: AsciiIcon(AsciiGlyph.album, size: 28, color: palette.primary)),
                 const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(trackTitle, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1), Text(artistName, style: TextStyle(fontSize: 12, color: palette.text.withOpacity(0.7)), maxLines: 1)])),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [Text(trackTitle, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis), Text(artistName, style: TextStyle(fontSize: 12, color: palette.text.withOpacity(0.7)), maxLines: 1, overflow: TextOverflow.ellipsis)])),
                 AsciiIconButton(glyph: isPlaying ? AsciiGlyph.pause : AsciiGlyph.play, onPressed: onPlayPause, size: 24, color: palette.text),
                 AsciiIconButton(glyph: AsciiGlyph.skipNext, onPressed: onNext, size: 24, color: palette.text),
               ],
             ),
             const SizedBox(height: 8),
-            // Robust Progress Bar for Mini Player
-            Container(
+            SizedBox(
               height: 4,
-              width: double.infinity,
-              decoration: BoxDecoration(color: palette.background, border: Border.all(color: palette.border, width: 1), borderRadius: BorderRadius.circular(2)),
-              child: FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: progress.clamp(0.0, 1.0), // Clamped for safety
-                child: Container(decoration: BoxDecoration(color: palette.primary, borderRadius: BorderRadius.circular(1))),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Container(
+                    decoration: BoxDecoration(color: palette.background, border: Border.all(color: palette.border, width: 1), borderRadius: BorderRadius.circular(2)),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FractionallySizedBox(
+                        widthFactor: progress.clamp(0.0, 1.0),
+                        child: Container(decoration: BoxDecoration(color: palette.primary, borderRadius: BorderRadius.circular(1))),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],

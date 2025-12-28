@@ -7,7 +7,7 @@ import '../theme/app_theme.dart';
 /// A spreadsheet-style view implementing the "Curated Utility" philosophy.
 /// Designed for high information density (28dp rows) and technical transparency.
 class NeuDataGrid extends StatefulWidget {
-  final List<GridColumn> columns; // Dynamic list of tags/columns
+  final List<GridColumn> columns;
   final List<Map<String, dynamic>> rows;
   final Function(int)? onRowTap;
   final Function(int)? onRowDoubleTap;
@@ -16,7 +16,7 @@ class NeuDataGrid extends StatefulWidget {
   final double rowHeight;
   final bool showHeader;
   final Function(String, bool)? onSort;
-  final Function(Offset)? onHeaderRightClick; // For customizing tags
+  final Function(Offset)? onHeaderRightClick;
 
   const NeuDataGrid({
     super.key,
@@ -26,7 +26,7 @@ class NeuDataGrid extends StatefulWidget {
     this.onRowDoubleTap,
     this.selectedRowIndex,
     required this.palette,
-    this.rowHeight = 28, // foobar2000 standard density [cite: 211]
+    this.rowHeight = 28,
     this.showHeader = true,
     this.onSort,
     this.onHeaderRightClick,
@@ -51,7 +51,7 @@ class _NeuDataGridState extends State<NeuDataGrid> {
         boxShadow: [
           BoxShadow(
             color: widget.palette.shadow,
-            offset: const Offset(6, 6), // Hard shadows [cite: 185]
+            offset: const Offset(6, 6),
             blurRadius: 0,
           ),
         ],
@@ -60,10 +60,14 @@ class _NeuDataGridState extends State<NeuDataGrid> {
         children: [
           if (widget.showHeader) _buildHeader(),
           Expanded(
-            child: ListView.builder(
-              itemCount: widget.rows.length,
-              itemExtent: widget.rowHeight,
-              itemBuilder: (context, index) => _buildRow(index),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return ListView.builder(
+                  itemCount: widget.rows.length,
+                  itemExtent: widget.rowHeight,
+                  itemBuilder: (context, index) => _buildRow(index, constraints.maxWidth),
+                );
+              },
             ),
           ),
         ],
@@ -80,7 +84,7 @@ class _NeuDataGridState extends State<NeuDataGrid> {
         decoration: BoxDecoration(
           color: widget.palette.background,
           border: Border(
-            bottom: BorderSide(color: widget.palette.border, width: 3), // Thick bottom border [cite: 263]
+            bottom: BorderSide(color: widget.palette.border, width: 3),
           ),
         ),
         child: Row(
@@ -93,7 +97,7 @@ class _NeuDataGridState extends State<NeuDataGrid> {
   Widget _buildHeaderCell(GridColumn column) {
     final isSorted = _sortColumn == column.key;
     return Expanded(
-      flex: column.flex,
+      flex: column.flex > 0 ? column.flex : 1,
       child: GestureDetector(
         onTap: () {
           setState(() {
@@ -110,7 +114,7 @@ class _NeuDataGridState extends State<NeuDataGrid> {
           padding: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
             border: Border(
-              right: BorderSide(color: widget.palette.border, width: 2), // Vertical dividers [cite: 262]
+              right: BorderSide(color: widget.palette.border, width: 2),
             ),
           ),
           child: Row(
@@ -140,7 +144,7 @@ class _NeuDataGridState extends State<NeuDataGrid> {
     );
   }
 
-  Widget _buildRow(int index) {
+  Widget _buildRow(int index, double availableWidth) {
     final row = widget.rows[index];
     final isSelected = widget.selectedRowIndex == index;
     final isHovered = _hoveredRow == index;
@@ -153,6 +157,7 @@ class _NeuDataGridState extends State<NeuDataGrid> {
         onTap: () => widget.onRowTap?.call(index),
         onDoubleTap: () => widget.onRowDoubleTap?.call(index),
         child: Container(
+          width: availableWidth,
           height: widget.rowHeight,
           decoration: BoxDecoration(
             color: isSelected
@@ -167,10 +172,13 @@ class _NeuDataGridState extends State<NeuDataGrid> {
                 : null,
           ),
           child: Row(
+            mainAxisSize: MainAxisSize.max,
             children: widget.columns.map((column) {
               final value = row[column.key];
+              final flexValue = column.flex > 0 ? column.flex : 1;
+              
               return Expanded(
-                flex: column.flex,
+                flex: flexValue,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   alignment: column.alignment,
@@ -184,7 +192,7 @@ class _NeuDataGridState extends State<NeuDataGrid> {
                   ),
                   child: Text(
                     value?.toString() ?? '',
-                    style: GoogleFonts.spaceMono( // Monospace for diagnostic data [cite: 185]
+                    style: GoogleFonts.spaceMono(
                       fontSize: 11,
                       fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
                       color: widget.palette.text,
@@ -217,17 +225,17 @@ class GridColumn {
   });
 }
 
-/// Implementation of foobar2000 mapping presets [cite: 167, 185]
+/// Implementation of foobar2000 mapping presets
 class MusicGridColumns {
   static List<GridColumn> get compact => [
-        const GridColumn(key: 'track', label: '#', flex: 0, alignment: Alignment.centerRight),
+        const GridColumn(key: 'track', label: '#', flex: 1, alignment: Alignment.centerRight),
         const GridColumn(key: 'title', label: 'Title', flex: 4),
         const GridColumn(key: 'artist', label: 'Artist', flex: 3),
         const GridColumn(key: 'duration', label: 'Time', flex: 1, alignment: Alignment.centerRight),
       ];
 
   static List<GridColumn> get detailed => [
-        const GridColumn(key: 'track', label: '#', flex: 0, alignment: Alignment.centerRight),
+        const GridColumn(key: 'track', label: '#', flex: 1, alignment: Alignment.centerRight),
         const GridColumn(key: 'title', label: 'Title', flex: 4),
         const GridColumn(key: 'artist', label: 'Artist', flex: 3),
         const GridColumn(key: 'album', label: 'Album', flex: 3),
@@ -236,9 +244,8 @@ class MusicGridColumns {
         const GridColumn(key: 'duration', label: 'Time', flex: 1, alignment: Alignment.centerRight),
       ];
 
-  /// Full diagnostic view with technical metadata [cite: 171, 185]
   static List<GridColumn> get audiophile => [
-        const GridColumn(key: 'track', label: '#', flex: 0, alignment: Alignment.centerRight),
+        const GridColumn(key: 'track', label: '#', flex: 1, alignment: Alignment.centerRight),
         const GridColumn(key: 'title', label: 'Title', flex: 4),
         const GridColumn(key: 'artist', label: 'Artist', flex: 3),
         const GridColumn(key: 'album', label: 'Album', flex: 3),

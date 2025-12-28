@@ -96,7 +96,10 @@ class _NeuTrackTileState extends State<NeuTrackTile> {
           duration: const Duration(milliseconds: 150),
           margin: const EdgeInsets.only(bottom: 8),
           padding: EdgeInsets.all(isMobile ? 16 : 12),
-          height: tileHeight,
+          constraints: BoxConstraints(
+            minHeight: tileHeight,
+            maxHeight: tileHeight + 24,
+          ),
           decoration: BoxDecoration(
             color: widget.isPlaying
                 ? widget.palette.primary.withValues(alpha: 0.2)
@@ -140,6 +143,7 @@ class _NeuTrackTileState extends State<NeuTrackTile> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       widget.title,

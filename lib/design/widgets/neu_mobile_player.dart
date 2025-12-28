@@ -86,184 +86,193 @@ class NeuMobileExpandedPlayer extends StatelessWidget {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          children: [
-            // 1. Large Diagnostic Hero Area
-            // Combines visual branding with the "Truth to Materials" Mel-Spectrogram.
-            Expanded(
-              flex: 5,
-              child: Container(
-                margin: const EdgeInsets.symmetric(vertical: 24),
-                decoration: BoxDecoration(
-                  color: palette.surface,
-                  border: Border.all(color: palette.border, width: 4),
-                  boxShadow: [
-                    BoxShadow(
-                      color: palette.shadow,
-                      offset: const Offset(8, 8),
-                      blurRadius: 0,
-                    ),
-                  ],
-                ),
-                child: Stack(
-                  children: [
-                    Center(
-                      child: AsciiIcon(
-                        AsciiGlyph.album,
-                        size: 160,
-                        color: palette.primary.withOpacity(0.1),
-                      ),
-                    ),
-                    // Mel-Spectrogram for signal verification
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: SizedBox(
-                        height: 140,
-                        child: NeuSpectrogram(
-                          palette: palette,
-                          height: 140,
-                          showGrid: true, // Grid is essential for diagnostic utility
-                          showLabels: false,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            children: [
+              // 1. Large Diagnostic Hero Area
+              // Combines visual branding with the "Truth to Materials" Mel-Spectrogram.
+              Flexible(
+                flex: 5,
+                fit: FlexFit.loose,
+                child: AspectRatio(
+                  aspectRatio: 1.0,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 24),
+                    decoration: BoxDecoration(
+                      color: palette.surface,
+                      border: Border.all(color: palette.border, width: 4),
+                      boxShadow: [
+                        BoxShadow(
+                          color: palette.shadow,
+                          offset: const Offset(8, 8),
+                          blurRadius: 0,
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            ),
-
-            // 2. Metadata Section
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            trackTitle.toUpperCase(),
-                            style: GoogleFonts.robotoCondensed(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w900,
-                              height: 1.1,
-                              color: palette.text,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                    child: Stack(
+                      children: [
+                        Center(
+                          child: AsciiIcon(
+                            AsciiGlyph.album,
+                            size: 160,
+                            color: palette.primary.withOpacity(0.1),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "$artistName ${albumTitle != null ? '— $albumTitle' : ''}",
-                            style: GoogleFonts.spaceMono(
-                              fontSize: 13,
-                              color: palette.text.withOpacity(0.7),
+                        ),
+                        // Mel-Spectrogram for signal verification
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: SizedBox(
+                            height: 140,
+                            child: NeuSpectrogram(
+                              palette: palette,
+                              height: 140,
+                              showGrid: true, // Grid is essential for diagnostic utility
+                              showLabels: false,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // Bit-Perfect/High-Res Indicator
-                NeuAudioInfoBadge(
-                  format: "FLAC",
-                  sampleRate: 96000,
-                  bitDepth: 24,
-                  exclusiveMode: true,
-                  palette: palette,
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 32),
-
-            // 3. Neobrutalist Progress Bar
-            NeuProgressBar(
-              value: progress,
-              onChanged: onSeek,
-              palette: palette,
-              showLabels: true,
-              leftLabel: _formatDuration(position),
-              rightLabel: _formatDuration(duration),
-              height: 12,
-            ),
-
-            const SizedBox(height: 40),
-
-            // 4. Playback Controls (Comfort Mode: Oversized hit targets)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Use integrated NeuIconButton which handles IconData to Ascii conversion
-                NeuIconButton(
-                  icon: isShuffled ? Icons.shuffle_on : Icons.shuffle,
-                  onPressed: onShuffle,
-                  palette: palette,
-                  size: 48,
-                  backgroundColor: isShuffled ? palette.accent.withOpacity(0.2) : null,
-                ),
-                Row(
-                  children: [
-                    NeuIconButton(
-                      icon: Icons.skip_previous,
-                      onPressed: onPrevious,
-                      palette: palette,
-                      size: 64,
-                    ),
-                    const SizedBox(width: 16),
-                    NeuIconButton(
-                      icon: isPlaying ? Icons.pause : Icons.play_arrow,
-                      onPressed: onPlayPause,
-                      palette: palette,
-                      size: 84, // Primary touch target
-                      backgroundColor: palette.primary,
-                    ),
-                    const SizedBox(width: 16),
-                    NeuIconButton(
-                      icon: Icons.skip_next,
-                      onPressed: onNext,
-                      palette: palette,
-                      size: 64,
-                    ),
-                  ],
-                ),
-                NeuIconButton(
-                  icon: isRepeating ? Icons.repeat_on : Icons.repeat,
-                  onPressed: onRepeat,
-                  palette: palette,
-                  size: 48,
-                  backgroundColor: isRepeating ? palette.accent.withOpacity(0.2) : null,
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 32),
-
-            // 5. Volume Slider
-            Row(
-              children: [
-                AsciiIcon(AsciiGlyph.volumeDown, size: 16, color: palette.text.withOpacity(0.5)),
-                Expanded(
-                  child: Slider(
-                    value: volume,
-                    onChanged: onVolumeChange,
-                    activeColor: palette.secondary,
-                    inactiveColor: palette.border.withOpacity(0.1),
                   ),
                 ),
-                AsciiIcon(AsciiGlyph.volumeUp, size: 16, color: palette.text.withOpacity(0.5)),
-              ],
-            ),
-            
-            const Spacer(),
-          ],
+              ),
+
+              // 2. Metadata Section
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              trackTitle.toUpperCase(),
+                              style: GoogleFonts.robotoCondensed(
+                                fontSize: 26,
+                                fontWeight: FontWeight.w900,
+                                height: 1.1,
+                                color: palette.text,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "$artistName ${albumTitle != null ? '— $albumTitle' : ''}",
+                              style: GoogleFonts.spaceMono(
+                                fontSize: 13,
+                                color: palette.text.withOpacity(0.7),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  // Bit-Perfect/High-Res Indicator
+                  NeuAudioInfoBadge(
+                    format: "FLAC",
+                    sampleRate: 96000,
+                    bitDepth: 24,
+                    exclusiveMode: true,
+                    palette: palette,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 32),
+
+              // 3. Neobrutalist Progress Bar
+              NeuProgressBar(
+                value: progress,
+                onChanged: onSeek,
+                palette: palette,
+                showLabels: true,
+                leftLabel: _formatDuration(position),
+                rightLabel: _formatDuration(duration),
+                height: 12,
+              ),
+
+              const SizedBox(height: 40),
+
+              // 4. Playback Controls (Comfort Mode: Oversized hit targets)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Use integrated NeuIconButton which handles IconData to Ascii conversion
+                  NeuIconButton(
+                    icon: isShuffled ? Icons.shuffle_on : Icons.shuffle,
+                    onPressed: onShuffle,
+                    palette: palette,
+                    size: 48,
+                    backgroundColor: isShuffled ? palette.accent.withOpacity(0.2) : null,
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      NeuIconButton(
+                        icon: Icons.skip_previous,
+                        onPressed: onPrevious,
+                        palette: palette,
+                        size: 64,
+                      ),
+                      const SizedBox(width: 16),
+                      NeuIconButton(
+                        icon: isPlaying ? Icons.pause : Icons.play_arrow,
+                        onPressed: onPlayPause,
+                        palette: palette,
+                        size: 84, // Primary touch target
+                        backgroundColor: palette.primary,
+                      ),
+                      const SizedBox(width: 16),
+                      NeuIconButton(
+                        icon: Icons.skip_next,
+                        onPressed: onNext,
+                        palette: palette,
+                        size: 64,
+                      ),
+                    ],
+                  ),
+                  NeuIconButton(
+                    icon: isRepeating ? Icons.repeat_on : Icons.repeat,
+                    onPressed: onRepeat,
+                    palette: palette,
+                    size: 48,
+                    backgroundColor: isRepeating ? palette.accent.withOpacity(0.2) : null,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 32),
+
+              // 5. Volume Slider
+              Row(
+                children: [
+                  AsciiIcon(AsciiGlyph.volumeDown, size: 16, color: palette.text.withOpacity(0.5)),
+                  Expanded(
+                    child: Slider(
+                      value: volume,
+                      onChanged: onVolumeChange,
+                      activeColor: palette.secondary,
+                      inactiveColor: palette.border.withOpacity(0.1),
+                    ),
+                  ),
+                  AsciiIcon(AsciiGlyph.volumeUp, size: 16, color: palette.text.withOpacity(0.5)),
+                ],
+              ),
+              
+              const Spacer(),
+            ],
+          ),
         ),
       ),
     );
