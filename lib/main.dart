@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'design/theme/app_theme.dart';
-import 'design/widgets/neu_adaptive_scaffold.dart';
 import 'design/widgets/neu_playlist_tabs.dart';
 import 'design/widgets/neu_playlist_manager.dart';
 import 'design/widgets/neu_folder_tree.dart';
@@ -14,11 +13,13 @@ import 'design/widgets/neu_mobile_player.dart';
 import 'design/widgets/neu_spectrogram.dart';
 import 'design/widgets/neu_search_bar.dart';
 import 'design/widgets/neu_audio_info_badge.dart';
-import 'design/widgets/neu_container.dart';
-import 'design/widgets/neu_scrobble_dialogs.dart';
 import 'design/widgets/neu_playlist.dart';
 import 'design/widgets/ascii_icons.dart';
 import 'design/widgets/neu_lyrics_panel.dart';
+import 'design/widgets/neu_keyboard_shortcuts.dart';
+import 'design/widgets/neu_theme_customizer.dart';
+import 'design/widgets/neu_column_editor.dart';
+import 'keyboard_shortcuts.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -69,6 +70,9 @@ class MusicPlayerHome extends StatefulWidget {
 }
 
 class _MusicPlayerHomeState extends State<MusicPlayerHome> {
+  // Keyboard Shortcuts Manager
+  late final KeyboardShortcutManager _shortcutManager;
+
   // Navigation State
   int _selectedNavIndex = 0;
   ViewMode _currentViewMode = ViewMode.folders;
@@ -85,11 +89,13 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
   int? _currentTrackIndex;
   double _progress = 0.0;
   double _volume = 0.7;
+  bool _isMuted = false;
   Duration _position = Duration.zero;
   Duration _duration = const Duration(minutes: 5, seconds: 21);
 
   // UI State
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   FolderNode? _selectedFolder;
   int? _selectedGridRow;
   
@@ -98,6 +104,9 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
   List<LyricLine> _currentLyrics = [];
   bool _lyricsAutoScroll = true;
 
+  // Column Customization State
+  List<GridColumn> _gridColumns = MusicGridColumns.audiophile;
+
   // Mock Data
   late List<FolderNode> _folderTree;
   late List<Map<String, dynamic>> _tracks;
@@ -105,10 +114,63 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
   @override
   void initState() {
     super.initState();
+    _initializeKeyboardShortcuts();
     _initializeMockData();
     _initializePlaylists();
     _loadMockLyrics();
     _startPlaybackSimulation();
+  }
+
+  void _initializeKeyboardShortcuts() {
+    _shortcutManager = KeyboardShortcutManager();
+    
+    MusicPlayerShortcuts.registerDefaults(
+      _shortcutManager,
+      onPlayPause: _togglePlayPause,
+      onNext: _skipToNext,
+      onPrevious: _skipToPrevious,
+      onVolumeUp: () {
+        setState(() {
+          _volume = (_volume + 0.1).clamp(0.0, 1.0);
+        });
+        _showVolumeToast();
+      },
+      onVolumeDown: () {
+        setState(() {
+          _volume = (_volume - 0.1).clamp(0.0, 1.0);
+        });
+        _showVolumeToast();
+      },
+      onMute: () {
+        setState(() {
+          if (_isMuted) {
+            _isMuted = false;
+          } else {
+            _isMuted = true;
+          }
+        });
+      },
+      onShuffle: () {
+        setState(() => _isShuffled = !_isShuffled);
+        HapticFeedback.lightImpact();
+      },
+      onRepeat: () {
+        setState(() => _isRepeating = !_isRepeating);
+        HapticFeedback.lightImpact();
+      },
+      onSearch: () {
+        _searchFocusNode.requestFocus();
+      },
+      onQueue: () {
+        setState(() => _rightPanelTab = 0);
+      },
+      onDiagnostics: () {
+        _showDiagnosticsDialog();
+      },
+      onSettings: () {
+        _showSettingsDialog();
+      },
+    );
   }
 
   void _initializeMockData() {
@@ -141,18 +203,26 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
         'title': 'Music Is Math',
         'artist': 'Boards of Canada',
         'album': 'Geogaddi',
-        'duration': '5:21',
+        'year': 2002,
+        'genre': 'IDM',
         'format': 'FLAC',
+        'bitrate': '1411 kbps',
         'sampleRate': '96kHz/24-bit',
+        'duration': '5:21',
+        'path': '/Music/Electronic/Boards of Canada/Geogaddi/02.flac',
       },
       {
         'track': 2,
         'title': 'Gyroscope',
         'artist': 'Boards of Canada',
         'album': 'Geogaddi',
-        'duration': '3:26',
+        'year': 2002,
+        'genre': 'IDM',
         'format': 'FLAC',
+        'bitrate': '1411 kbps',
         'sampleRate': '96kHz/24-bit',
+        'duration': '3:26',
+        'path': '/Music/Electronic/Boards of Canada/Geogaddi/04.flac',
       },
     ];
   }
@@ -166,7 +236,6 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
   }
 
   void _loadMockLyrics() {
-    // Mock synchronized lyrics for "Music Is Math" by Boards of Canada
     _currentLyrics = [
       const LyricLine(
         timestamp: Duration(seconds: 0),
@@ -289,13 +358,49 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
     }
   }
 
+  void _showVolumeToast() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Volume: ${(_volume * 100).round()}%',
+          style: GoogleFonts.spaceMono(fontSize: 12),
+        ),
+        backgroundColor: widget.palette.primary,
+        duration: const Duration(milliseconds: 500),
+      ),
+    );
+  }
+
+  void _showDiagnosticsDialog() {
+    // Show audio diagnostics panel
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Audio Diagnostics Panel (Coming Soon)',
+          style: GoogleFonts.spaceMono(fontSize: 12),
+        ),
+        backgroundColor: widget.palette.accent,
+      ),
+    );
+  }
+
+  void _showSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => _buildSettingsDialog(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isDesktop = constraints.maxWidth > 800;
-        return isDesktop ? _buildDesktopLayout() : _buildMobileLayout();
-      },
+    return KeyboardShortcutHandler(
+      manager: _shortcutManager,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isDesktop = constraints.maxWidth > 800;
+          return isDesktop ? _buildDesktopLayout() : _buildMobileLayout();
+        },
+      ),
     );
   }
 
@@ -336,32 +441,108 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
           const SizedBox(width: 12),
           Text('BRUTALIST PLAYER', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: widget.palette.text)),
           const Spacer(),
-          _buildThemeSelector(),
+          _buildToolbarButtons(),
         ],
       ),
     );
   }
 
-  Widget _buildThemeSelector() {
-    return PopupMenuButton<String>(
+  Widget _buildToolbarButtons() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Keyboard shortcuts button
+        _buildToolbarButton(
+          AsciiGlyph.key,
+          'SHORTCUTS',
+          () {
+            showDialog(
+              context: context,
+              builder: (_) => Dialog(
+                backgroundColor: Colors.transparent,
+                child: NeuKeyboardShortcutsPanel(
+                  manager: _shortcutManager,
+                  palette: widget.palette,
+                  onEdit: () {
+                    Navigator.pop(context);
+                    showDialog(
+                      context: context,
+                      builder: (_) => NeuKeyboardShortcutEditor(
+                        manager: _shortcutManager,
+                        palette: widget.palette,
+                        onSave: (manager) {
+                          // TODO: Save to persistent storage
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Shortcuts saved!',
+                                style: GoogleFonts.spaceMono(fontSize: 12),
+                              ),
+                              backgroundColor: widget.palette.primary,
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+          },
+        ),
+        const SizedBox(width: 8),
+        
+        // Theme customizer button
+        _buildToolbarButton(
+          AsciiGlyph.settings,
+          'THEME',
+          () {
+            showDialog(
+              context: context,
+              builder: (_) => NeuThemeCustomizer(
+                initialPalette: widget.palette,
+                onThemeChanged: (newPalette) {
+                  widget.onPaletteChanged(newPalette);
+                },
+                onSave: (palette) {
+                  // TODO: Save to persistent storage
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Theme saved!',
+                        style: GoogleFonts.spaceMono(fontSize: 12),
+                      ),
+                      backgroundColor: widget.palette.primary,
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildToolbarButton(AsciiGlyph glyph, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: widget.palette.primary,
+          color: widget.palette.primary.withValues(alpha: 0.2),
           border: Border.all(color: widget.palette.border, width: 2),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AsciiIcon(AsciiGlyph.settings, size: 16, color: widget.palette.text),
+            AsciiIcon(glyph, size: 16, color: widget.palette.text),
             const SizedBox(width: 8),
-            Text('Theme', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: widget.palette.text)),
+            Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: widget.palette.text)),
           ],
         ),
       ),
-      onSelected: (name) => widget.onPaletteChanged(RatholeTheme.allPalettes[name]!),
-      itemBuilder: (context) => RatholeTheme.allPalettes.keys.map((name) => PopupMenuItem(value: name, child: Text(name))).toList(),
     );
   }
 
@@ -407,13 +588,44 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: NeuDataGrid(
-              columns: MusicGridColumns.audiophile,
-              rows: _tracks,
-              selectedRowIndex: _selectedGridRow,
-              onRowTap: (i) => setState(() => _selectedGridRow = i),
-              onRowDoubleTap: _playTrack,
-              palette: widget.palette,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Search bar + Column editor
+                Row(
+                  children: [
+                    Expanded(
+                      child: NeuSearchBar(
+                        controller: _searchController,
+                        focusNode: _searchFocusNode,
+                        palette: widget.palette,
+                        hintText: 'Search library... (Ctrl+F)',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    NeuColumnEditorButton(
+                      currentColumns: _gridColumns,
+                      palette: widget.palette,
+                      onColumnsChanged: (newColumns) {
+                        setState(() => _gridColumns = newColumns);
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                
+                // Data grid
+                Expanded(
+                  child: NeuDataGrid(
+                    columns: _gridColumns,
+                    rows: _tracks,
+                    selectedRowIndex: _selectedGridRow,
+                    onRowTap: (i) => setState(() => _selectedGridRow = i),
+                    onRowDoubleTap: _playTrack,
+                    palette: widget.palette,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -426,7 +638,6 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
       margin: const EdgeInsets.all(8),
       child: Column(
         children: [
-          // Tab selector
           _buildRightPanelTabs(),
           const SizedBox(height: 8),
           
@@ -440,7 +651,6 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
             ),
           const SizedBox(height: 12),
           
-          // Tab content
           Expanded(
             child: _rightPanelTab == 0 ? _buildQueueTab() : _buildLyricsTab(),
           ),
@@ -475,7 +685,7 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
             color: isSelected 
-                ? widget.palette.primary.withOpacity(0.2) 
+                ? widget.palette.primary.withValues(alpha: 0.2) 
                 : Colors.transparent,
             border: isSelected
                 ? Border(
@@ -548,7 +758,10 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
     final track = _tracks[_currentTrackIndex!];
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: widget.palette.surface, border: Border(top: BorderSide(color: widget.palette.border, width: 3))),
+      decoration: BoxDecoration(
+        color: widget.palette.surface,
+        border: Border(top: BorderSide(color: widget.palette.border, width: 3)),
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -567,7 +780,7 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: widget.palette.primary.withOpacity(0.2),
+                  color: widget.palette.primary.withValues(alpha: 0.2),
                   border: Border.all(color: widget.palette.border, width: 2),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -580,7 +793,7 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(track['title'], style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    Text('${track['artist']} • ${track['album']}', style: TextStyle(fontSize: 12, color: widget.palette.text.withOpacity(0.7)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text('${track['artist']} • ${track['album']}', style: TextStyle(fontSize: 12, color: widget.palette.text.withValues(alpha: 0.7)), maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
                 ),
               ),
@@ -604,7 +817,12 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
       appBar: AppBar(
         title: const Text('BRUTALIST PLAYER', style: TextStyle(fontWeight: FontWeight.w900)),
         backgroundColor: widget.palette.surface,
-        actions: [_buildThemeSelector()],
+        actions: [
+          IconButton(
+            icon: AsciiIcon(AsciiGlyph.settings, size: 20, color: widget.palette.text),
+            onPressed: _showSettingsDialog,
+          ),
+        ],
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(12),
@@ -651,6 +869,150 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
     )));
   }
 
+  // ==================== SETTINGS DIALOG ====================
+
+  Widget _buildSettingsDialog() {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        width: 500,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: widget.palette.background,
+          border: Border.all(color: widget.palette.border, width: 3),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: widget.palette.shadow,
+              offset: const Offset(8, 8),
+              blurRadius: 0,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header
+            Row(
+              children: [
+                AsciiIcon(AsciiGlyph.settings, size: 20, color: widget.palette.primary),
+                const SizedBox(width: 12),
+                Text(
+                  'SETTINGS',
+                  style: GoogleFonts.robotoCondensed(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: widget.palette.text,
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: AsciiIcon(AsciiGlyph.close, size: 18, color: widget.palette.text),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Settings options
+            _buildSettingsButton(
+              'Keyboard Shortcuts',
+              AsciiGlyph.key,
+              () {
+                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (_) => Dialog(
+                    backgroundColor: Colors.transparent,
+                    child: NeuKeyboardShortcutsPanel(
+                      manager: _shortcutManager,
+                      palette: widget.palette,
+                      onEdit: () {
+                        Navigator.pop(context);
+                        showDialog(
+                          context: context,
+                          builder: (_) => NeuKeyboardShortcutEditor(
+                            manager: _shortcutManager,
+                            palette: widget.palette,
+                            onSave: (manager) {},
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+
+            _buildSettingsButton(
+              'Theme Customizer',
+              AsciiGlyph.settings,
+              () {
+                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (_) => NeuThemeCustomizer(
+                    initialPalette: widget.palette,
+                    onThemeChanged: widget.onPaletteChanged,
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+
+            _buildSettingsButton(
+              'Column Editor',
+              AsciiGlyph.gridView,
+              () {
+                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (_) => NeuColumnEditor(
+                    initialColumns: _gridColumns,
+                    palette: widget.palette,
+                    onSave: (cols) => setState(() => _gridColumns = cols),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsButton(String label, AsciiGlyph glyph, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: widget.palette.surface,
+          border: Border.all(color: widget.palette.border, width: 2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            AsciiIcon(glyph, size: 20, color: widget.palette.primary),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: GoogleFonts.robotoCondensed(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: widget.palette.text,
+              ),
+            ),
+            const Spacer(),
+            AsciiIcon(AsciiGlyph.chevronRight, size: 16, color: widget.palette.text),
+          ],
+        ),
+      ),
+    );
+  }
+
   String _formatDuration(Duration d) {
     final minutes = d.inMinutes;
     final seconds = d.inSeconds % 60;
@@ -660,6 +1022,7 @@ class _MusicPlayerHomeState extends State<MusicPlayerHome> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 }
@@ -706,9 +1069,9 @@ class NeuMobileMiniPlayer extends StatelessWidget {
           children: [
             Row(
               children: [
-                Container(width: 48, height: 48, decoration: BoxDecoration(color: palette.primary.withOpacity(0.2), border: Border.all(color: palette.border, width: 2), borderRadius: BorderRadius.circular(8)), child: AsciiIcon(AsciiGlyph.album, size: 28, color: palette.primary)),
+                Container(width: 48, height: 48, decoration: BoxDecoration(color: palette.primary.withValues(alpha: 0.2), border: Border.all(color: palette.border, width: 2), borderRadius: BorderRadius.circular(8)), child: AsciiIcon(AsciiGlyph.album, size: 28, color: palette.primary)),
                 const SizedBox(width: 12),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [Text(trackTitle, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis), Text(artistName, style: TextStyle(fontSize: 12, color: palette.text.withOpacity(0.7)), maxLines: 1, overflow: TextOverflow.ellipsis)])),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [Text(trackTitle, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis), Text(artistName, style: TextStyle(fontSize: 12, color: palette.text.withValues(alpha: 0.7)), maxLines: 1, overflow: TextOverflow.ellipsis)])),
                 AsciiIconButton(glyph: isPlaying ? AsciiGlyph.pause : AsciiGlyph.play, onPressed: onPlayPause, size: 24, color: palette.text),
                 AsciiIconButton(glyph: AsciiGlyph.skipNext, onPressed: onNext, size: 24, color: palette.text),
               ],
